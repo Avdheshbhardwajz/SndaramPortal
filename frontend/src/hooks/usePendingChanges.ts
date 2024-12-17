@@ -54,7 +54,7 @@ export const usePendingChanges = (tableName: string) => {
 
         // Send change to backend
         await axios.post(
-          `/table/${tableName}/changes`,
+          `/api/table/${tableName}/changes`,
           changeRecord,
           {
             headers: {

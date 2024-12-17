@@ -2,7 +2,7 @@ import axios from 'axios';
 import { RequestDataPayload } from '../types/requestData';
 import { ChangeTrackerResponse, ApproveRejectResponse } from '../types/checkerData';
 
-const API_BASE_URL = '';
+const API_BASE_URL = '/api';
 const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 const checkerId = userData.user_id;
 

@@ -4,7 +4,7 @@ interface ErrorResponse {
   message?: string;
 }
 
-const API_BASE_URL = "";
+const API_BASE_URL = "/api";
 
 export type UserRole = "maker" | "checker";
 
