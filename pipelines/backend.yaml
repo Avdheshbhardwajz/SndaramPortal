@@ -25,20 +25,16 @@ variables:
 
 jobs:
   - job: Backend
+    variables:
+      - group: backend_env
     steps:
-      - task: NodeTool@0
-        inputs:
-          versionSource: "spec"
-          versionSpec: "18.x"
-        displayName: Install NodeJS
+      - checkout: self
+        clean: true
       - bash: |
           #!/bin/bash
           set -e
-          sudo apt-get update -y
           mkdir -p /opt/app/{dev,uat/prd}
-        displayName: Update Softwares
-      - checkout: self
-        clean: true
+        displayName: Create Directory
       - bash: |
           #!/bin/bash
           set -e
@@ -48,17 +44,30 @@ jobs:
       - bash: |
           #!/bin/bash
           set -e
-          sudo npm install pm2@latest -g
+          echo $(dev) | base64 --decode > .env
+        displayName: Copy env file
+        workingDirectory: /opt/app/$(env)/
+        condition: ne(variables['env'], '')
+      - task: NodeTool@0
+        inputs:
+          versionSource: "spec"
+          versionSpec: "18.x"
+        displayName: Install NodeJS
+      - bash: |
+          #!/bin/bash
+          set -e
+          npm install pm2@latest -g
           npm i
         displayName: Install Packages
         condition: ne(variables['env'], '')
         workingDirectory: /opt/app/$(env)
       - bash: |
           #!/bin/bash
-          if NODE_PORT=$(port) pm2 start /opt/app/$(env)/index.js --watch /opt/app/$(env) ; then 
+          if PORT=$(port) pm2 start app.js --watch . ; then 
             echo "yes";
           else
             pm2 reload all
           fi
         displayName: Deploy
         condition: ne(variables['env'], '')
+        workingDirectory: /opt/app/$(env)

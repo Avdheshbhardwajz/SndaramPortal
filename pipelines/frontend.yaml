@@ -27,6 +27,7 @@ jobs:
         inputs:
           versionSource: "spec"
           versionSpec: "18.x"
+        displayName: Install NodeJS
       - bash: |
           #!/bin/bash
           set -e
