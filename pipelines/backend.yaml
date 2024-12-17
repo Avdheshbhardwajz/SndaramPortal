@@ -55,7 +55,8 @@ jobs:
       - bash: |
           #!/bin/bash
           set -e
-          sudo npm install pm2@latest -g
+          # npm install pm2@latest -g
+          npm i
         displayName: Install Packages
         condition: ne(variables['env'], '')
         workingDirectory: /opt/app/$(env)
