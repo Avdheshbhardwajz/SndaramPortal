@@ -63,10 +63,11 @@ jobs:
         workingDirectory: /opt/app/$(env)
       - bash: |
           #!/bin/bash
-          if PORT=$(port) pm2 start /opt/app/$(env)/app.js --watch /opt/app/$(env) ; then 
+          if PORT=$(port) pm2 start app.js --watch . ; then 
             echo "yes";
           else
             pm2 reload all
           fi
         displayName: Deploy
         condition: ne(variables['env'], '')
+        workingDirectory: /opt/app/$(env)
