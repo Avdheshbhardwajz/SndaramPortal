@@ -51,7 +51,7 @@ const EditorLogin: React.FC = () => {
         throw new Error('Please select a role');
       }
 
-      const response = await fetch('http://localhost:8080/signin', {
+      const response = await fetch('/api/signin', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

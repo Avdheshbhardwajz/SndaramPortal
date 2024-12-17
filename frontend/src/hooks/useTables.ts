@@ -14,7 +14,7 @@ export const useTables = () => {
       setIsLoading(true)
       setError(null)
 
-      const response = await axios.get<TablesResponse>('http://localhost:8080/table')
+      const response = await axios.get<TablesResponse>('/api/table')
       
       if (!response.data?.success || !Array.isArray(response.data?.tables)) {
         throw new Error('Invalid response format')

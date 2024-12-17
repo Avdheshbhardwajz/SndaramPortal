@@ -121,7 +121,7 @@ export const useGridData = ({
 
     try {
       const response = await axios.post<ColumnPermissionResponse>(
-        "http://localhost:8080/columnPermission",
+        "/api/columnPermission",
         {
           table_name: tableName,
           action: "get",
@@ -185,7 +185,7 @@ export const useGridData = ({
 
       try {
         const response = await axios.get<ApiResponse>(
-          `http://localhost:8080/tableData/${tableName}`,
+          `/api/tableData/${tableName}`,
           {
             params: {
               page,

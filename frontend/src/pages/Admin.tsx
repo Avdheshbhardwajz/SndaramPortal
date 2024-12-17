@@ -93,7 +93,7 @@ const loadUsers = useCallback(async () => {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/table');
+        const response = await axios.get('/api/table');
         if (response.data.success && response.data.tables) {
           const tableNames = response.data.tables.map((table: { table_name: string }) => table.table_name);
           setTables(tableNames);
