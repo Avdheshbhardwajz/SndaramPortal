@@ -13,6 +13,7 @@ trigger:
 pool: agent
 
 variables:
+  group: backend_env
   ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
     port: 5002
     env: prd
@@ -44,6 +45,12 @@ jobs:
           set -e
           cp -avr $(Build.SourcesDirectory)/backend/* /opt/app/$(env)/
         displayName: Copy Entire Backend
+        condition: ne(variables['env'], '')
+      - bash: |
+          #!/bin/bash
+          set -e
+          echo $($(env)) | base64 --decode > .env
+        displayName: Copy env file
         condition: ne(variables['env'], '')
       - bash: |
           #!/bin/bash
