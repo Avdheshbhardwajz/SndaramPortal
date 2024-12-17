@@ -13,7 +13,6 @@ trigger:
 pool: agent
 
 variables:
-  group: backend_env
   ${{ if eq(variables['Build.SourceBranch'], 'refs/heads/main') }}:
     port: 5002
     env: prd
@@ -26,7 +25,11 @@ variables:
 
 jobs:
   - job: Backend
+    variables:
+      - group: backend_env
     steps:
+      - checkout: self
+        clean: true
       - task: NodeTool@0
         inputs:
           versionSource: "spec"
@@ -36,9 +39,7 @@ jobs:
           #!/bin/bash
           set -e
           mkdir -p /opt/app/{dev,uat/prd}
-        displayName: Update Softwares
-      - checkout: self
-        clean: true
+        displayName: Create Directory
       - bash: |
           #!/bin/bash
           set -e
