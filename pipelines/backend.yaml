@@ -35,7 +35,6 @@ jobs:
       - bash: |
           #!/bin/bash
           set -e
-          sudo apt-get update -y
           mkdir -p /opt/app/{dev,uat/prd}
         displayName: Update Softwares
       - checkout: self
@@ -49,7 +48,7 @@ jobs:
       - bash: |
           #!/bin/bash
           set -e
-          echo $($(env)) | base64 --decode > .env
+          echo $(dev) | base64 --decode > .env
         displayName: Copy env file
         condition: ne(variables['env'], '')
       - bash: |
