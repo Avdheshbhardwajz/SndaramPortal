@@ -46,6 +46,7 @@ jobs:
           set -e
           echo $(dev) | base64 --decode > .env
         displayName: Copy env file
+        workingDirectory: /opt/app/$(env)/
         condition: ne(variables['env'], '')
       - task: NodeTool@0
         inputs:
@@ -62,7 +63,7 @@ jobs:
         workingDirectory: /opt/app/$(env)
       - bash: |
           #!/bin/bash
-          if NODE_PORT=$(port) pm2 start /opt/app/$(env)/index.js --watch /opt/app/$(env) ; then 
+          if PORT=$(port) pm2 start /opt/app/$(env)/index.js --watch /opt/app/$(env) ; then 
             echo "yes";
           else
             pm2 reload all
