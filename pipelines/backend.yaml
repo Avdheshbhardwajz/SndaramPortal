@@ -30,11 +30,6 @@ jobs:
     steps:
       - checkout: self
         clean: true
-      - task: NodeTool@0
-        inputs:
-          versionSource: "spec"
-          versionSpec: "18.x"
-        displayName: Install NodeJS
       - bash: |
           #!/bin/bash
           set -e
@@ -52,6 +47,11 @@ jobs:
           echo $(dev) | base64 --decode > .env
         displayName: Copy env file
         condition: ne(variables['env'], '')
+      - task: NodeTool@0
+        inputs:
+          versionSource: "spec"
+          versionSpec: "18.x"
+        displayName: Install NodeJS
       - bash: |
           #!/bin/bash
           set -e
