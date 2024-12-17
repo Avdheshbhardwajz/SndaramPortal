@@ -63,7 +63,7 @@ jobs:
         workingDirectory: /opt/app/$(env)
       - bash: |
           #!/bin/bash
-          if PORT=$(port) pm2 start app.js --watch . ; then 
+          if PORT=$(port) pm2 start app.js --name "APPJS" ; then 
             echo "yes";
           else
             pm2 reload all
