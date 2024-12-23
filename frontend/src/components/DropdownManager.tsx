@@ -63,7 +63,7 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
   const fetchColumns = async (tableName: string) => {
     try {
       setLoading(true);
-      const response = await axios.post(`/api/fetchcolumn`, {
+      const response = await axios.post(`http://localhost:8080/fetchcolumn`, {
         table_name: tableName,
       });
 
@@ -83,7 +83,7 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
     try {
       setLoading(true);
       const response = await axios.post(
-        "/api/fetchColumnDropDown",
+        "http://localhost:8080/fetchColumnDropDown",
         {
           table_name: selectedTable,
           columnName: selectedColumn,
@@ -147,7 +147,7 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
 
       // First, fetch all existing dropdown options for the table
       const existingOptionsResponse = await axios.post(
-        "/api/fetchColumnDropDown",
+        "http://localhost:8080/fetchColumnDropDown",
         {
           table_name: selectedTable,
           columnName: selectedColumn,
@@ -182,7 +182,7 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
 
       // Save all options
       const response = await axios.post(
-        "/api/updateColumnDropDown",
+        "http://localhost:8080/updateColumnDropDown",
         {
           table_name: selectedTable,
           dropdown_options: allOptions,

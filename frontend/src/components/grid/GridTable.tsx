@@ -62,7 +62,7 @@ export const GridTable = memo(
       const fetchDropdownOptions = async () => {
         try {
           const response = await axios.post<DropdownResponse>(
-            "/api/fetchDropdownOptions",
+            "http://localhost:8080/fetchDropdownOptions",
             { table_name: tableName }
           );
 
