@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { Trash2, Edit2, Eye, EyeOff, LogOut } from 'lucide-react';
+import {  Edit2, Eye, EyeOff, LogOut, Ban } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ColumnConfigurator from '@/components/ColumnConfigurator';
 import DropdownManager from '@/components/DropdownManager';
-import { createUser, getAllUsers, updateUser, deleteUser, User } from '@/services/userApi';
+import { createUser, getAllUsers, updateUser, disableUser, User } from '@/services/userApi';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import { UserApiResponse, DialogState } from '@/types/user';
@@ -33,9 +33,6 @@ const Admin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
- 
-
-
   // State management
   const [users, setUsers] = useState<User[]>([]);
   const [newUser, setNewUser] = useState<User>(INITIAL_USER_STATE);
@@ -43,36 +40,36 @@ const Admin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [dialogState, setDialogState] = useState<DialogState>({
-    delete: { open: false, user: null },
+    disable: { open: false, user: null },
     edit: { open: false }
   });
   const [tables, setTables] = useState<string[]>([]);
 
   // Load users from backend
-const loadUsers = useCallback(async () => {
-  try {
-    const response = await getAllUsers();
-    if (response.success) {
-      const transformedUsers = response.data.map((user: UserApiResponse) => ({
-        id: user.user_id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        email: user.email,
-        role: user.role
-      }));
-      setUsers(transformedUsers);
+  const loadUsers = useCallback(async () => {
+    try {
+      const response = await getAllUsers();
+      if (response.success) {
+        const transformedUsers = response.data.map((user: UserApiResponse) => ({
+          id: user.user_id,
+          firstName: user.first_name,
+          lastName: user.last_name,
+          email: user.email,
+          role: user.role,
+          isDisabled: user.is_disabled
+        }));
+        setUsers(transformedUsers);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to load users";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
+      });
     }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Failed to load users";
-    toast({
-      variant: "destructive",
-      title: "Error",
-      description: errorMessage
-    });
-  }
-}, [toast]);
+  }, [toast]);
 
-  
   // Check for authentication on component mount
   useEffect(() => {
     const token = localStorage.getItem('adminToken');
@@ -110,9 +107,6 @@ const loadUsers = useCallback(async () => {
     fetchTables();
   }, [toast]);
 
-  // Load users from backend
-
-
   // Form validation
   const validateForm = useCallback((user: User, isEdit = false): Record<string, string> => {
     const errors: Record<string, string> = {};
@@ -124,24 +118,18 @@ const loadUsers = useCallback(async () => {
     if (!emailRegex.test(user.email)) errors.email = 'Invalid email format';
     
     // Password validation for new users
-  if (!isEdit) {
-    if (!user.password) {
-      errors.password = 'Password is required';
-    } else if (user.password.length < 8) {
-      errors.password = 'Password must be at least 8 characters';
+    if (!isEdit) {
+      if (!user.password) {
+        errors.password = 'Password is required';
+      } else if (user.password.length < 8) {
+        errors.password = 'Password must be at least 8 characters';
+      }
     }
-  }
     return errors;
   }, []);
 
-   // Render helpers
-   const renderFormInput = useCallback((
-    field: keyof User,
-    label: string,
-    type: string = 'text',
-    value: string,
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
-  ) => (
+  // Render helpers
+  const renderFormInput = useCallback((field: keyof User, label: string, type: string = 'text', value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void) => (
     <div className="grid gap-2">
       <Input
         type={type}
@@ -192,16 +180,42 @@ const loadUsers = useCallback(async () => {
         description:  errorMessage
       });
     }
-  }, [newUser, validateForm , toast, loadUsers]);
+  }, [newUser, validateForm, toast, loadUsers]);
 
-  // Dialog handlers
-  const handleDeleteClick = useCallback((user: User) => {
+  // Handle disable user
+  const handleDisableClick = useCallback((user: User) => {
     setDialogState(prev => ({
       ...prev,
-      delete: { open: true, user }
+      disable: { open: true, user }
     }));
   }, []);
 
+  const handleDisableConfirm = useCallback(async () => {
+    const user = dialogState.disable.user;
+    if (!user?.id) return;
+
+    try {
+      await disableUser(user.id.toString());
+      setDialogState(prev => ({
+        ...prev,
+        disable: { open: false, user: null }
+      }));
+      loadUsers();
+      toast({
+        title: "Success",
+        description: "User disabled successfully"
+      });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to disable user";
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: errorMessage
+      });
+    }
+  }, [dialogState.disable.user, loadUsers, toast]);
+
+  // Dialog handlers
   const handleEditClick = useCallback((user: User) => {
     setEditingUser({ ...user });
     setDialogState(prev => ({
@@ -256,36 +270,6 @@ const loadUsers = useCallback(async () => {
     }
   }, [editingUser, validateForm, toast, loadUsers]);
 
-  // Delete user handler
-  const handleConfirmDelete = useCallback(async () => {
-    const userToDelete = dialogState.delete.user;
-    if (!userToDelete?.id) return;
-
-    try {
-      const response = await deleteUser(userToDelete.id.toString());
-      if (response.success) {
-        setDialogState(prev => ({
-          ...prev,
-          delete: { open: false, user: null }
-        }));
-        loadUsers();
-        toast({
-          title: "Success",
-          description: "User deleted successfully"
-        });
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to perform operation";
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage
-      });
-    }
-  }, [dialogState.delete.user , toast, loadUsers]);
-
- 
-
   return (
     <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header with Logout Button */}
@@ -336,7 +320,7 @@ const loadUsers = useCallback(async () => {
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={newUser.password}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))}
+                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))} 
                   className={errors.password ? 'border-red-500' : ''}
                 />
                 <button
@@ -357,7 +341,7 @@ const loadUsers = useCallback(async () => {
               <div className="space-y-2">
                 <Select
                   value={newUser.role}
-                  onValueChange={(value: 'maker' | 'checker') => setNewUser(prev => ({ ...prev, role: value }))}
+                  onValueChange={(value: 'maker' | 'checker') => setNewUser(prev => ({ ...prev, role: value }))} 
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
@@ -392,6 +376,7 @@ const loadUsers = useCallback(async () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
@@ -403,6 +388,7 @@ const loadUsers = useCallback(async () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
                     <td className="px-6 py-4 whitespace-nowrap capitalize">{user.role}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{user.isDisabled ? 'Disabled' : 'Active'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                       <Button
                         variant="secondary"
@@ -414,13 +400,12 @@ const loadUsers = useCallback(async () => {
                         Edit
                       </Button>
                       <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDeleteClick(user)}
-                        className="inline-flex items-center gap-1"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDisableClick(user)}
+                        disabled={user.isDisabled}
                       >
-                        <Trash2 className="h-4 w-4" />
-                        Delete
+                        <Ban className="h-4 w-4" />
                       </Button>
                     </td>
                   </tr>
@@ -434,7 +419,7 @@ const loadUsers = useCallback(async () => {
       {/* Edit User Dialog */}
       <Dialog 
         open={dialogState.edit.open} 
-        onOpenChange={(open) => setDialogState(prev => ({ ...prev, edit: { open } }))}
+        onOpenChange={(open) => setDialogState(prev => ({ ...prev, edit: { open } }))} 
       >
         <DialogContent className="bg-white font-poppins">
           <DialogHeader>
@@ -533,28 +518,25 @@ const loadUsers = useCallback(async () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Disable Confirmation Dialog */}
       <Dialog 
-        open={dialogState.delete.open}
+        open={dialogState.disable.open}
         onOpenChange={(open) => 
-          setDialogState(prev => ({ ...prev, delete: { ...prev.delete, open } }))
+          setDialogState(prev => ({ ...prev, disable: { ...prev.disable, open } }))
         }
       >
         <DialogContent className="bg-white font-poppins">
           <DialogHeader>
-            <DialogTitle className="font-poppins">Confirm Delete</DialogTitle>
-            <DialogDescription className="font-poppins">
-              Are you sure you want to delete this user? This action cannot be undone.
+            <DialogTitle>Disable User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disable this user? They will no longer be able to access the system.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
               variant="outline"
               onClick={() => 
-                setDialogState(prev => ({ 
-                  ...prev, 
-                  delete: { open: false, user: null } 
-                }))
+                setDialogState(prev => ({ ...prev, disable: { open: false, user: null } }))
               }
               className="font-poppins"
             >
@@ -562,10 +544,10 @@ const loadUsers = useCallback(async () => {
             </Button>
             <Button 
               variant="destructive"
-              onClick={handleConfirmDelete}
+              onClick={handleDisableConfirm}
               className="font-poppins"
             >
-              Delete
+              Disable
             </Button>
           </DialogFooter>
         </DialogContent>

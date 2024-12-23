@@ -15,6 +15,7 @@ export interface User {
   email: string;
   password?: string;
   role: UserRole;
+  isDisabled?: boolean;
 }
 
 export const createUser = async (userData: User) => {
@@ -61,6 +62,18 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
     const axiosError = error as AxiosError<ErrorResponse>;
     throw new Error(
       axiosError.response?.data?.message || "Failed to update user"
+    );
+  }
+};
+
+export const disableUser = async (userId: string) => {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/disableUser/${userId}`);
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    throw new Error(
+      axiosError.response?.data?.message || "Failed to disable user"
     );
   }
 };

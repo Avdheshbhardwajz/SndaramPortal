@@ -6,10 +6,11 @@ export interface UserApiResponse {
   last_name: string;
   email: string;
   role: UserRole;
+  is_disabled: boolean;
 }
 
 export interface DialogState {
-  delete: {
+  disable: {
     open: boolean;
     user: User | null;
   };
