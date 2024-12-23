@@ -69,7 +69,7 @@ const EditorSignup: React.FC = () => {
 
     try {
       // Replace with your actual API endpoint
-      const response = await fetch('/api/editor/signup', {
+      const response = await fetch('http://localhost:8080/editor/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
