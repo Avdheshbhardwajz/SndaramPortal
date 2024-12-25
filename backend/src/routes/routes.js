@@ -15,8 +15,7 @@ const { fetchColumnDropDown } = require('../controllers/fetchColumnDropdown/fetc
 const { updateColumnDropDown } = require('../controllers/updateColumnDropdown/updateColumnDropdown.js');
 const { fetchColumnStatus } = require('../controllers/fetchColumnStatus/fetchColumnStatus.js');
 const { fetchDropdownOptions } = require('../controllers/fetchDropdownOptions/fetchDropdownOptions.js');
-const { addGroup } = require('../controllers/tablesGroup/tableGroup.js');
-const { addTable } = require('../controllers/tablesGroup/tableGroup.js');
+
 
 // Authentication routes
 router.post('/signin', signin);
@@ -49,10 +48,8 @@ router.post('/updateColumnDropDown', updateColumnDropDown);
 router.post('/fetchColumnStatus', fetchColumnStatus);
 router.post('/fetchDropdownOptions', fetchDropdownOptions);
 
-// checker approve all and reject all 
 
-//group configuration 
-router.post('/addgroup', addGroup);
-router.post('/addtable', addTable);
+
+
 
 module.exports = router;
