@@ -87,12 +87,13 @@ const Admin = () => {
     navigate('/login');
   }, [navigate]);
 
-  // Fetch tables
+  // Load tables from backend
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/table');
-        if (response.data.success && response.data.tables) {
+        const response = await axios.get(`http://localhost:8080/table`);
+        if (response.data && response.data.success && response.data.tables) {
+          // Extract table names from the response
           const tableNames = response.data.tables.map((table: { table_name: string }) => table.table_name);
           setTables(tableNames);
         }
@@ -105,6 +106,7 @@ const Admin = () => {
         });
       }
     };
+
     fetchTables();
   }, [toast]);
 
@@ -554,7 +556,7 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="grid gap-4 ">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <ColumnConfigurator tables={tables} />
         <DropdownManager tables={tables} />
         <GroupConfiguration availableTables={tables} />

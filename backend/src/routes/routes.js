@@ -15,7 +15,11 @@ const { fetchColumnDropDown } = require('../controllers/fetchColumnDropdown/fetc
 const { updateColumnDropDown } = require('../controllers/updateColumnDropdown/updateColumnDropdown.js');
 const { fetchColumnStatus } = require('../controllers/fetchColumnStatus/fetchColumnStatus.js');
 const { fetchDropdownOptions } = require('../controllers/fetchDropdownOptions/fetchDropdownOptions.js');
-
+const { addGroup } = require('../controllers/tablesGroup/tableGroup.js');
+const { addTable } = require('../controllers/tablesGroup/tableGroup.js');
+const { getGroupList } = require('../controllers/getGroupList/getGroupList.js');
+const { removeGroup } = require('../controllers/removeGroup/removeGroup.js');
+const { removeTable } = require('../controllers/removeTable/removeTable.js');
 
 // Authentication routes
 router.post('/signin', signin);
@@ -48,8 +52,12 @@ router.post('/updateColumnDropDown', updateColumnDropDown);
 router.post('/fetchColumnStatus', fetchColumnStatus);
 router.post('/fetchDropdownOptions', fetchDropdownOptions);
 
-
-
+// group configuration routes
+router.post('/addgroup', addGroup); //create group
+router.post('/addtable', addTable); // add table inside of a group 
+router.get('/getgrouplist', getGroupList); //show all group and table list respectively 
+router.post('/removegroup', removeGroup);
+router.post('/removetable', removeTable);
 
 
 module.exports = router;
