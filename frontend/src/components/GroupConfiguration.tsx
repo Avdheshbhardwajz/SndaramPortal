@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Trash2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import React, { useState, useEffect } from "react";
+import { Plus, Trash2 } from "lucide-react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -10,11 +10,17 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
-import { getGroupList, addGroup, addTable } from '@/services/groupApi';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import {
+  getGroupList,
+  addGroup,
+  addTable,
+  deleteGroup,
+  deleteTable,
+} from "@/services/groupApi";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 
 interface GroupConfigurationProps {
   availableTables: string[];
@@ -26,13 +32,15 @@ interface TableGroup {
   tables: string[];
 }
 
-const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables }) => {
+const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
+  availableTables,
+}) => {
   const { toast } = useToast();
   const [groups, setGroups] = useState<TableGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<TableGroup | null>(null);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isAddTablesDialogOpen, setIsAddTablesDialogOpen] = useState(false);
-  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupName, setNewGroupName] = useState("");
   const [selectedTables, setSelectedTables] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,7 +54,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
       const groupList = await getGroupList();
       setGroups(groupList);
     } catch (error: unknown) {
-      console.error('Failed to fetch groups:', error);
+      console.error("Failed to fetch groups:", error);
       setGroups([]);
       toast({
         title: "Error",
@@ -73,14 +81,15 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
       await addGroup(newGroupName.trim());
       await fetchGroups();
       setIsCreateDialogOpen(false);
-      setNewGroupName('');
+      setNewGroupName("");
       toast({
         title: "Success",
         description: "Group created successfully",
       });
     } catch (error: unknown) {
-      console.error('Failed to create group:', error);
-      const message = error instanceof Error ? error.message : 'Failed to create group';
+      console.error("Failed to create group:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to create group";
       toast({
         title: "Error",
         description: message,
@@ -107,10 +116,10 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
       for (const table of selectedTables) {
         await addTable(selectedGroup.group_name, table);
       }
-      
+
       // Refresh the groups list
       await fetchGroups();
-      
+
       setIsAddTablesDialogOpen(false);
       setSelectedTables([]);
       toast({
@@ -118,8 +127,11 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
         description: "Tables added successfully",
       });
     } catch (error: unknown) {
-      console.error('Failed to add tables:', error);
-      const message = error instanceof Error ? error.message : 'Failed to add tables to group';
+      console.error("Failed to add tables:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to add tables to group";
       toast({
         title: "Error",
         description: message,
@@ -136,19 +148,47 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
     setIsAddTablesDialogOpen(true);
   };
 
-  const handleDeleteGroup = async () => {
+  const handleDeleteGroup = async (group: TableGroup) => {
     setIsLoading(true);
     try {
-      toast({
-        title: "Info",
-        description: "Delete functionality will be implemented soon",
-      });
+      await deleteGroup(group.group_name);
       await fetchGroups();
+      toast({
+        title: "Success",
+        description: "Group deleted successfully",
+      });
     } catch (error: unknown) {
-      console.error('Failed to delete group:', error);
+      console.error("Failed to delete group:", error);
+      const message =
+        error instanceof Error ? error.message : "Failed to delete group";
       toast({
         title: "Error",
-        description: "Failed to delete group",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteTable = async (groupName: string, tableName: string) => {
+    setIsLoading(true);
+    try {
+      await deleteTable(groupName, tableName);
+      await fetchGroups();
+      toast({
+        title: "Success",
+        description: "Table removed from group successfully",
+      });
+    } catch (error: unknown) {
+      console.error("Failed to delete table from group:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to remove table from group";
+      toast({
+        title: "Error",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -160,7 +200,9 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
     <div className="w-full">
       <Card className="w-full">
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-2xl font-bold font-['Poppins']">Group Configuration</CardTitle>
+          <CardTitle className="text-2xl font-bold font-['Poppins']">
+            Group Configuration
+          </CardTitle>
           <Button
             onClick={() => setIsCreateDialogOpen(true)}
             variant="outline"
@@ -184,10 +226,15 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
             ) : (
               <div className="space-y-4">
                 {groups.map((group, index) => (
-                  <div key={group.group_id || `group-${group.group_name}-${index}`} className="bg-white rounded-lg shadow-sm border p-4">
+                  <div
+                    key={group.group_id || `group-${group.group_name}-${index}`}
+                    className="bg-white rounded-lg shadow-sm border p-4"
+                  >
                     <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="text-lg font-semibold font-['Poppins']">{group.group_name}</h3>
+                        <h3 className="text-lg font-semibold font-['Poppins']">
+                          {group.group_name}
+                        </h3>
                         <p className="text-sm text-gray-500 font-['Poppins']">
                           {group.tables?.length || 0} tables assigned
                         </p>
@@ -206,7 +253,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleDeleteGroup()}
+                          onClick={() => handleDeleteGroup(group)}
                           className="font-['Poppins']"
                           disabled={isLoading}
                         >
@@ -216,14 +263,27 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
                     </div>
                     {group.tables && group.tables.length > 0 && (
                       <div className="mt-4">
-                        <h4 className="text-sm font-medium mb-2 font-['Poppins']">Tables in this group:</h4>
+                        <h4 className="text-sm font-medium mb-2 font-['Poppins']">
+                          Tables in this group:
+                        </h4>
                         <div className="flex flex-wrap gap-2">
                           {group.tables.map((table) => (
                             <span
                               key={`${group.group_id}-table-${table}`}
-                              className="px-2 py-1 text-sm bg-gray-100 rounded-md font-['Poppins']"
+                              className="px-2 py-1 text-sm bg-gray-100 rounded-md font-['Poppins'] flex items-center"
                             >
                               {table}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="ml-2 h-4 w-4 p-0"
+                                onClick={() =>
+                                  handleDeleteTable(group.group_name, table)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Trash2 className="h-3 w-3 text-gray-500 hover:text-red-500" />
+                              </Button>
                             </span>
                           ))}
                         </div>
@@ -236,17 +296,24 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
           </div>
 
           {/* Create Group Dialog */}
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogContent className="bg-white">
               <DialogHeader>
-                <DialogTitle className="font-['Poppins']">Create New Group</DialogTitle>
+                <DialogTitle className="font-['Poppins']">
+                  Create New Group
+                </DialogTitle>
                 <DialogDescription className="font-['Poppins']">
                   Enter a name for the new group.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name" className="font-['Poppins']">Group Name</Label>
+                  <Label htmlFor="name" className="font-['Poppins']">
+                    Group Name
+                  </Label>
                   <Input
                     id="name"
                     placeholder="Enter group name"
@@ -262,7 +329,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
                   variant="outline"
                   onClick={() => {
                     setIsCreateDialogOpen(false);
-                    setNewGroupName('');
+                    setNewGroupName("");
                   }}
                   className="font-['Poppins']"
                   disabled={isLoading}
@@ -281,10 +348,15 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
           </Dialog>
 
           {/* Add Tables Dialog */}
-          <Dialog open={isAddTablesDialogOpen} onOpenChange={setIsAddTablesDialogOpen}>
+          <Dialog
+            open={isAddTablesDialogOpen}
+            onOpenChange={setIsAddTablesDialogOpen}
+          >
             <DialogContent className="bg-white">
               <DialogHeader>
-                <DialogTitle className="font-['Poppins']">Add Tables to Group</DialogTitle>
+                <DialogTitle className="font-['Poppins']">
+                  Add Tables to Group
+                </DialogTitle>
                 <DialogDescription className="font-['Poppins']">
                   Select tables to add to {selectedGroup?.group_name}.
                 </DialogDescription>
@@ -292,7 +364,10 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   {availableTables.map((table) => (
-                    <div key={`table-option-${table}`} className="flex items-center space-x-2">
+                    <div
+                      key={`table-option-${table}`}
+                      className="flex items-center space-x-2"
+                    >
                       <Checkbox
                         id={`checkbox-${table}`}
                         checked={selectedTables.includes(table)}
@@ -300,7 +375,9 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({ availableTables
                           if (checked) {
                             setSelectedTables([...selectedTables, table]);
                           } else {
-                            setSelectedTables(selectedTables.filter((t) => t !== table));
+                            setSelectedTables(
+                              selectedTables.filter((t) => t !== table)
+                            );
                           }
                         }}
                         disabled={isLoading}
