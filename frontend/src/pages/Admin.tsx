@@ -16,6 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import ColumnConfigurator from '@/components/ColumnConfigurator';
 import DropdownManager from '@/components/DropdownManager';
+import GroupConfiguration from '@/components/GroupConfiguration';
 import { createUser, getAllUsers, updateUser, disableUser, User } from '@/services/userApi';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
@@ -553,8 +554,11 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
-      <ColumnConfigurator tables={tables} />
-      <DropdownManager tables={tables} />
+      <div className="grid gap-4 ">
+        <ColumnConfigurator tables={tables} />
+        <DropdownManager tables={tables} />
+        <GroupConfiguration availableTables={tables} />
+      </div>
     </div>
   );
 };
