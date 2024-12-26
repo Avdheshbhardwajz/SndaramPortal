@@ -40,6 +40,9 @@ const { getGroupList } = require("../controllers/getGroupList/getGroupList.js");
 const { removeGroup } = require("../controllers/removeGroup/removeGroup.js");
 const { removeTable } = require("../controllers/removeTable/removeTable.js");
 const { getAllCheckerRequest } = require('../controllers/getAllCheckerRequest/getAllCheckerRequest.js');
+const { allApprove } = require('../controllers/approveAll/allApprove.js');
+const { allReject } = require('../controllers/allReject/allReject.js');
+
 
 // Authentication routes
 router.post("/signin", signin);
@@ -81,5 +84,8 @@ router.post("/removetable", removeTable);
 //checker logs 
 router.post('/getallcheckerrequest', getAllCheckerRequest);
 
+//endpoint to manage bulk requst 
+router.post('/approveall', allApprove);
+router.post('/rejectall', allReject);
 
 module.exports = router;

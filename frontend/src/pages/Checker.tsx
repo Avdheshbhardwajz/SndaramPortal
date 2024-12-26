@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import logo from "../assets/Logo.png"
 import { useToast } from "@/hooks/use-toast"
-import { fetchChangeTrackerData, approveChange, rejectChange } from '@/services/api'
+import { fetchChangeTrackerData, approveChange} from '@/services/api'
 import { CheckerLog } from '@/components/CheckerLog'
 import { TableContent } from '@/components/ui/TableContent'
 import {
@@ -191,23 +191,32 @@ export default function EnhancedCheckerPage() {
         ? pendingChanges.filter(change => selectedIds.includes(change.id))
         : pendingChanges.filter(change => change.tableName === tableName);
   
-      for (const change of itemsToApprove) {
-        const response = await approveChange(change.request_id);
-        if (!response.success) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Failed to approve change: ${response.message}`
-          });
-        }
-      }
-  
-      toast({
-        title: "Success",
-        description: "Selected changes approved successfully"
+      const requestIds = itemsToApprove.map(item => item.request_id);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
+      const response = await fetch('http://localhost:8080/approveall', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          request_ids: requestIds,
+          checker: userData.user_id 
+        }),
       });
-      await loadPendingChanges();
-      setSelectedChanges({});
+
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Selected changes approved successfully"
+        });
+        await loadPendingChanges();
+        setSelectedChanges({});
+      } else {
+        throw new Error(result.message || 'Failed to approve changes');
+      }
     } catch (error) {
       console.error('Error approving changes:', error);
       toast({
@@ -289,27 +298,35 @@ export default function EnhancedCheckerPage() {
             ? pendingChanges.filter(change => selectedIds.includes(change.id))
             : pendingChanges.filter(change => change.tableName === currentRejectId))
         : pendingChanges.filter(change => change.id === currentRejectId);
-  
-      for (const change of itemsToReject) {
-        const response: ApiResponse<unknown> = await rejectChange(change.request_id, rejectReason);
-        if (!response.success) {
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: `Failed to reject change: ${response.message}`
-          });
-        }
-      }
-  
-      toast({
-        title: "Success",
-        description: "Changes rejected successfully"
+
+      const requestIds = itemsToReject.map(item => item.request_id);
+
+      const response = await fetch('http://localhost:8080/rejectall', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          request_ids: requestIds,
+          reason: rejectReason 
+        }),
       });
-      setIsRejectModalOpen(false);
-      setRejectReason("");
-      setCurrentRejectId(null);
-      setSelectedChanges({});
-      await loadPendingChanges();
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "Changes rejected successfully"
+        });
+        setIsRejectModalOpen(false);
+        setRejectReason("");
+        setCurrentRejectId(null);
+        setSelectedChanges({});
+        await loadPendingChanges();
+      } else {
+        throw new Error(result.message || 'Failed to reject changes');
+      }
     } catch (error) {
       console.error('Error rejecting changes:', error);
       toast({
@@ -518,4 +535,3 @@ export default function EnhancedCheckerPage() {
     </SidebarProvider>
   )
 }
-
