@@ -1,19 +1,29 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Check, X, LogOut, Plus, Minus } from 'lucide-react'
+import { LogOut, ChevronRight, History, Home } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import logo from "../assets/Logo.png"
 import { useToast } from "@/hooks/use-toast"
 import { fetchChangeTrackerData, approveChange, rejectChange } from '@/services/api'
 import { CheckerLog } from '@/components/CheckerLog'
+import { TableContent } from '@/components/ui/TableContent'
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarProvider,
+} from '@/components/ui/sidebar'
 
 interface ApiResponse<T> {
   success: boolean
@@ -54,11 +64,6 @@ interface Change {
   changedColumns: string[]
 }
 
-interface Table {
-  name: string
-  changes: Change[]
-}
-
 interface GroupData {
   group_name: string;
   table_list: string[];
@@ -73,11 +78,12 @@ export default function EnhancedCheckerPage() {
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState("")
   const [currentRejectId, setCurrentRejectId] = useState<string | null>(null)
-  const [expandedTables, setExpandedTables] = useState<Record<string, boolean>>({})
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({})
   const [pendingChanges, setPendingChanges] = useState<Change[]>([])
   const [tableGroups, setTableGroups] = useState<TableGroups>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [selectedTable, setSelectedTable] = useState<string | null>(null)
+  const [activeView, setActiveView] = useState<'overview' | 'history' | 'table'>('overview')
   const { toast } = useToast()
   const navigate = useNavigate()
 
@@ -169,17 +175,6 @@ export default function EnhancedCheckerPage() {
   useEffect(() => {
     loadPendingChanges()
   }, [])
-
-  const toggleGroup = (groupName: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupName]: !prev[groupName]
-    }))
-  }
-
-  const toggleTable = (tableName: string) => {
-    setExpandedTables(prev => ({ ...prev, [tableName]: !prev[tableName] }))
-  }
 
   const toggleChangeSelection = (changeId: string) => {
     setSelectedChanges(prev => ({ ...prev, [changeId]: !prev[changeId] }))
@@ -334,59 +329,57 @@ export default function EnhancedCheckerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background font-poppins">
-      <header className="flex justify-between items-center p-6 border-b">
-        <div className="flex items-center">
-          <img src={logo} alt="Company Logo" className="h-12 w-auto mr-4" />
-          <h1 className="text-2xl font-semibold text-primary">Admin Portal</h1>
-        </div>
-        <Button variant="ghost" onClick={handleLogout} className="font-medium">
-          <LogOut className="h-4 w-4 mr-2" />
-          Sign Out
-        </Button>
-      </header>
-
-      <div className="p-6">
-        <CheckerLog checker={JSON.parse(localStorage.getItem('userData') || '{}').user_id || ''} />
-      </div>
-
-      <Card className="mx-6 mt-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-xl font-semibold text-primary">Overview</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-lg">
-            You have <span className="font-semibold text-primary">{pendingChanges.length}</span> pending changes to review
-          </p>
-        </CardContent>
-      </Card>
-
-      <div className="container mx-auto py-6">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-xl font-semibold text-primary">Pending Changes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[600px]">
-              {isLoading ? (
-                <div className="flex justify-center items-center h-32">
-                  <p className="text-muted-foreground text-lg">Loading changes...</p>
-                </div>
-              ) : (
-                Object.entries(tableGroups).map(([groupName, changes]) => 
-                  changes.length > 0 && (
-                    <div key={groupName} className="mb-6">
-                      <div
-                        className="flex items-center gap-3 p-3 bg-secondary/20 rounded-lg cursor-pointer mb-4 hover:bg-secondary/30 transition-colors"
-                        onClick={() => toggleGroup(groupName)}
-                      >
-                        {expandedGroups[groupName] ? <Minus size={20} /> : <Plus size={20} />}
-                        <h3 className="text-lg font-semibold text-primary">{groupName}</h3>
-                        <Badge variant="secondary" className="font-medium">{changes.length}</Badge>
-                      </div>
-                      
-                      {expandedGroups[groupName] && (
-                        <div className="mt-3 space-y-4">
+    <SidebarProvider>
+      <div className="flex h-screen bg-background font-poppins">
+        <Sidebar className="border-r">
+          <SidebarHeader>
+            <div className="flex items-center p-4">
+              <img src={logo} alt="Company Logo" className="h-8 w-auto mr-2" />
+              <h1 className="text-xl font-semibold text-primary">Admin Portal</h1>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarGroup>
+              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveView('overview')}
+                      className={activeView === 'overview' ? 'bg-secondary' : ''}
+                    >
+                      <Home className="mr-2 h-4 w-4" />
+                      Overview
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton 
+                      onClick={() => setActiveView('history')}
+                      className={activeView === 'history' ? 'bg-secondary' : ''}
+                    >
+                      <History className="mr-2 h-4 w-4" />
+                      History
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+            <SidebarGroup>
+              <SidebarGroupLabel>Table Groups</SidebarGroupLabel>
+              <SidebarGroupContent>
+                {Object.entries(tableGroups).map(([groupName, changes]) => (
+                  <SidebarGroup key={groupName}>
+                    <SidebarGroupLabel 
+                      onClick={() => setSelectedGroup(groupName === selectedGroup ? null : groupName)}
+                      className="cursor-pointer flex items-center justify-between"
+                    >
+                      {groupName}
+                      <Badge variant="secondary" className="font-medium">{changes.length}</Badge>
+                      <ChevronRight className={`h-4 w-4 transition-transform ${selectedGroup === groupName ? 'rotate-90' : ''}`} />
+                    </SidebarGroupLabel>
+                    {selectedGroup === groupName && (
+                      <SidebarGroupContent>
+                        <SidebarMenu>
                           {Object.entries(
                             changes.reduce((acc, change) => {
                               if (!acc[change.tableName]) {
@@ -396,188 +389,91 @@ export default function EnhancedCheckerPage() {
                               return acc;
                             }, {} as Record<string, Change[]>)
                           ).map(([tableName, tableChanges]) => (
-                            <Card key={tableName} className="mb-4 border-secondary/20">
-                              <CardHeader 
-                                className="cursor-pointer hover:bg-secondary/10 transition-colors" 
-                                onClick={() => toggleTable(tableName)}
+                            <SidebarMenuItem key={tableName}>
+                              <SidebarMenuButton 
+                                onClick={() => {
+                                  setSelectedTable(tableName)
+                                  setActiveView('table')
+                                }}
+                                className={activeView === 'table' && selectedTable === tableName ? 'bg-secondary' : ''}
                               >
-                                <CardTitle className="text-lg font-semibold flex items-center justify-between text-primary">
-                                  {tableName}
-                                  <div className="flex items-center gap-2">
-                                    <Badge variant="secondary" className="font-medium">
-                                      {tableChanges.length} {tableChanges.length === 1 ? 'change' : 'changes'}
-                                    </Badge>
-                                    {expandedTables[tableName] ? (
-                                      <Minus className="h-4 w-4" />
-                                    ) : (
-                                      <Plus className="h-4 w-4" />
-                                    )}
-                                  </div>
-                                </CardTitle>
-                              </CardHeader>
-
-                              {expandedTables[tableName] && (
-                                <CardContent>
-                                  <div className="flex items-center gap-4 mb-4">
-                                    <div className="flex items-center gap-2">
-                                      <Checkbox
-                                        id={`selectAll-${tableName}`}
-                                        onCheckedChange={(checked) => {
-                                          const newSelected = { ...selectedChanges };
-                                          tableChanges.forEach((change) => {
-                                            newSelected[change.id] = checked as boolean;
-                                          });
-                                          setSelectedChanges(newSelected);
-                                        }}
-                                      />
-                                      <Label
-                                        htmlFor={`selectAll-${tableName}`}
-                                        className="text-sm font-medium"
-                                      >
-                                        Select All
-                                      </Label>
-                                    </div>
-                                    <Button
-                                      size="sm"
-                                      className="font-medium"
-                                      onClick={() => handleApproveAll(tableName)}
-                                    >
-                                      <Check className="h-4 w-4 mr-2" /> Approve All
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="destructive"
-                                      className="font-medium"
-                                      onClick={() => handleRejectAll(tableName)}
-                                    >
-                                      <X className="h-4 w-4 mr-2" /> Reject All
-                                    </Button>
-                                  </div>
-
-                                  <div className="overflow-x-auto rounded-md border">
-                                    <Table>
-                                      <TableHeader>
-                                        <TableRow className="bg-secondary/5">
-                                          <TableHead className="w-[50px] font-semibold">No.</TableHead>
-                                          <TableHead className="w-[120px] font-semibold">Actions</TableHead>
-                                          <TableHead className="w-[50px] font-semibold">Select</TableHead>
-                                          <TableHead className="font-semibold">User</TableHead>
-                                          <TableHead className="font-semibold">Date & Time</TableHead>
-                                          {tableChanges[0]?.rowData &&
-                                            Object.keys(tableChanges[0].rowData).map(
-                                              (columnName, colIndex) => (
-                                                <TableHead
-                                                  key={`${tableName}-${columnName}-${colIndex}`}
-                                                  className="font-semibold"
-                                                >
-                                                  {columnName}
-                                                </TableHead>
-                                              )
-                                            )}
-                                        </TableRow>
-                                      </TableHeader>
-                                      <TableBody>
-                                        {tableChanges.map((change, index) => (
-                                          <TableRow key={change.id} className="hover:bg-secondary/5">
-                                            <TableCell className="font-medium">{index + 1}</TableCell>
-                                            <TableCell>
-                                              <div className="flex space-x-2">
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={() => handleApprove(change.id)}
-                                                  className="hover:bg-green-50 hover:text-green-600"
-                                                >
-                                                  <Check className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                  size="sm"
-                                                  variant="destructive"
-                                                  onClick={() => handleReject(change.id)}
-                                                  className="hover:bg-red-600"
-                                                >
-                                                  <X className="h-4 w-4" />
-                                                </Button>
-                                              </div>
-                                            </TableCell>
-                                            <TableCell>
-                                              <Checkbox
-                                                checked={selectedChanges[change.id]}
-                                                onCheckedChange={() =>
-                                                  toggleChangeSelection(change.id)
-                                                }
-                                              />
-                                            </TableCell>
-                                            <TableCell>
-                                              <div className="whitespace-nowrap font-medium">
-                                                {change.user}
-                                              </div>
-                                            </TableCell>
-                                            <TableCell>
-                                              <div className="whitespace-nowrap text-muted-foreground">
-                                                {change.dateTime}
-                                              </div>
-                                            </TableCell>
-                                            {change.rowData &&
-                                              Object.keys(change.rowData).map(
-                                                (columnName, colIndex) => {
-                                                  const isChanged =
-                                                    change.changedColumns?.includes(
-                                                      columnName
-                                                    ) || false;
-
-                                                  return (
-                                                    <TableCell
-                                                      key={`${change.request_id}-${columnName}-${colIndex}`}
-                                                      className={isChanged ? "bg-yellow-50/50" : ""}
-                                                    >
-                                                      {isChanged ? (
-                                                        <div className="flex flex-col gap-1">
-                                                          <span className="line-through text-red-500/80 text-sm">
-                                                            {String(
-                                                              change.oldValues[
-                                                                columnName
-                                                              ] ?? "-"
-                                                            )}
-                                                          </span>
-                                                          <span className="text-green-600 font-medium">
-                                                            {String(
-                                                              change.newValues[
-                                                                columnName
-                                                              ] ?? "-"
-                                                            )}
-                                                          </span>
-                                                        </div>
-                                                      ) : (
-                                                        <span className="text-muted-foreground">
-                                                          {String(
-                                                            change.rowData[columnName] ??
-                                                              "-"
-                                                          )}
-                                                        </span>
-                                                      )}
-                                                    </TableCell>
-                                                  );
-                                                }
-                                              )}
-                                          </TableRow>
-                                        ))}
-                                      </TableBody>
-                                    </Table>
-                                  </div>
-                                </CardContent>
-                              )}
-                            </Card>
+                                {tableName}
+                                <Badge variant="secondary" className="ml-auto">{tableChanges.length}</Badge>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
                           ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                )
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+                        </SidebarMenu>
+                      </SidebarGroupContent>
+                    )}
+                  </SidebarGroup>
+                ))}
+              </SidebarGroupContent>
+            </SidebarGroup>
+          </SidebarContent>
+        </Sidebar>
+
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <header className="flex justify-between items-center p-4 border-b bg-white">
+            <h2 className="text-2xl font-semibold text-primary">
+              {activeView === 'overview' ? 'Overview' : 
+               activeView === 'history' ? 'History' : 
+               selectedTable || 'Table View'}
+            </h2>
+            <Button variant="ghost" onClick={handleLogout} className="font-medium">
+              <LogOut className="h-4 w-4 mr-2" />
+              Sign Out
+            </Button>
+          </header>
+
+          <main className="flex-1 overflow-auto p-6">
+            {activeView === 'overview' && (
+              <Card className="mb-6">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl font-semibold text-primary">Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-lg">
+                    You have <span className="font-semibold text-primary">{pendingChanges.length}</span> pending changes to review
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+
+            {activeView === 'history' && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl font-semibold text-primary">Checker Log</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CheckerLog checker={JSON.parse(localStorage.getItem('userData') || '{}').user_id || ''} />
+                </CardContent>
+              </Card>
+            )}
+
+            {activeView === 'table' && selectedTable && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-xl font-semibold text-primary">
+                    {selectedTable} - Pending Changes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <TableContent 
+                    tableName={selectedTable}
+                    tableChanges={pendingChanges.filter(change => change.tableName === selectedTable)}
+                    selectedChanges={selectedChanges}
+                    setSelectedChanges={setSelectedChanges}
+                    handleApproveAll={handleApproveAll}
+                    handleRejectAll={handleRejectAll}
+                    handleApprove={handleApprove}
+                    handleReject={handleReject}
+                    toggleChangeSelection={toggleChangeSelection}
+                  />
+                </CardContent>
+              </Card>
+            )}
+          </main>
+        </div>
       </div>
 
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
@@ -619,6 +515,7 @@ export default function EnhancedCheckerPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </SidebarProvider>
+  )
 }
+
