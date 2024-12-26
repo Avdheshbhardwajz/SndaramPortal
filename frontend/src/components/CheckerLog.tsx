@@ -87,7 +87,7 @@ export function CheckerLog({ checker }: CheckerLogProps) {
             </TableHeader>
             <TableBody>
               {activities.map((activity) => (
-                <TableRow key={activity.id}>
+                <TableRow key={activity.request_id}>
                   <TableCell className="font-medium">
                     {new Date(activity.updated_at).toLocaleString()}
                   </TableCell>
@@ -102,7 +102,7 @@ export function CheckerLog({ checker }: CheckerLogProps) {
                   <TableCell>
                     <div className="space-y-1">
                       {getChanges(activity.old_data, activity.new_data).map((change, index) => (
-                        <div key={index} className="text-sm text-muted-foreground">
+                        <div key={`${activity.request_id}-${index}`} className="text-sm text-muted-foreground">
                           {change}
                         </div>
                       ))}
