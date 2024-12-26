@@ -10,6 +10,13 @@ exports.allReject = async (req, res) => {
         });
     }
 
+    if (comments && comments.length > 100) {
+        return res.status(400).json({
+            success: false,
+            message: 'Comments must not exceed 100 characters',
+        });
+    }
+
     try {
         // Start transaction
         await client_update.query('BEGIN');
@@ -20,23 +27,28 @@ exports.allReject = async (req, res) => {
             const updateQuery = `
                 UPDATE app.change_tracker
                 SET 
-                    status = $1,
-                    comments = $2,
+                    status = 'rejected',
+                    comments = $1,
                     updated_at = NOW(),
-                    checker = $3
-                WHERE request_id = $4
+                    checker = $2
+                WHERE request_id = $3
+                AND status = 'pending'
                 RETURNING *;
             `;
 
-            const values = ['rejected', comments || null, checker, request_id];
+            const values = [
+                comments ? comments.trim().slice(0, 100) : null,
+                checker,
+                request_id
+            ];
+            
+            const result = await client_update.query(updateQuery, values);
 
-            const appSchemaResult = await client_update.query(updateQuery, values);
-
-            if (appSchemaResult.rowCount === 0) {
-                throw new Error(`No record found with the given request_id: ${request_id}`);
+            if (result.rowCount === 0) {
+                throw new Error(`No pending record found for request_id: ${request_id}`);
             }
 
-            updatedRecords.push(appSchemaResult.rows[0]);
+            updatedRecords.push(result.rows[0]);
         }
 
         // Commit transaction
@@ -44,19 +56,15 @@ exports.allReject = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Change requests rejected successfully',
-            trackerData: updatedRecords,
+            message: 'Changes rejected successfully',
+            results: updatedRecords
         });
     } catch (error) {
-        console.error('Error:', error);
-
-        // Rollback transaction in case of an error
         await client_update.query('ROLLBACK');
-
-        res.status(500).json({
+        console.error('Error in bulk reject:', error);
+        return res.status(500).json({
             success: false,
-            message: 'An error occurred while processing the request',
-            error: error.message,
+            message: error.message || 'Failed to reject changes'
         });
     }
 };

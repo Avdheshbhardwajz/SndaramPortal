@@ -283,24 +283,31 @@ export default function EnhancedCheckerPage() {
   }
 
   const submitReject = async () => {
-    if (!rejectReason.trim()) {
-      return;
-    }
-  
     try {
       setIsLoading(true);
-      const selectedIds = Object.entries(selectedChanges)
-        .filter(([, isSelected]) => isSelected)
-        .map(([id]) => id);
-      
-      const itemsToReject = currentRejectId === 'bulk'
-        ? (selectedIds.length > 0 
-            ? pendingChanges.filter(change => selectedIds.includes(change.id))
-            : pendingChanges.filter(change => change.tableName === currentRejectId))
+      if (!rejectReason || rejectReason.trim().length === 0) {
+        throw new Error('Please provide a reason for rejection');
+      }
+
+      if (rejectReason.length > 100) {
+        throw new Error('Rejection reason must not exceed 100 characters');
+      }
+
+      // Get selected changes ensuring they are not undefined
+      const changesToReject = currentRejectId === 'bulk' 
+        ? Object.entries(selectedChanges)
+            .filter(([, isSelected]) => isSelected)
+            .map(([id]) => pendingChanges.find(change => change.id === id))
+            .filter((change): change is Change => change !== undefined)
         : pendingChanges.filter(change => change.id === currentRejectId);
 
-      const requestIds = itemsToReject.map(item => item.request_id);
+      if (changesToReject.length === 0) {
+        throw new Error('No changes selected for rejection');
+      }
 
+      const requestIds = changesToReject.map(change => change.request_id);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
       const response = await fetch('http://localhost:8080/rejectall', {
         method: 'POST',
         headers: {
@@ -308,7 +315,8 @@ export default function EnhancedCheckerPage() {
         },
         body: JSON.stringify({ 
           request_ids: requestIds,
-          reason: rejectReason 
+          comments: rejectReason.trim(),
+          checker: userData.user_id
         }),
       });
 
