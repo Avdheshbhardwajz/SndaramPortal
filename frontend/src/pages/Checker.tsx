@@ -13,6 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 import logo from "../assets/Logo.png"
 import { useToast } from "@/hooks/use-toast"
 import { fetchChangeTrackerData, approveChange, rejectChange } from '@/services/api'
+import { CheckerLog } from '@/components/CheckerLog'
 
 interface ApiResponse<T> {
   success: boolean
@@ -344,6 +345,10 @@ export default function EnhancedCheckerPage() {
           Sign Out
         </Button>
       </header>
+
+      <div className="p-6">
+        <CheckerLog checker={JSON.parse(localStorage.getItem('userData') || '{}').user_id || ''} />
+      </div>
 
       <Card className="mx-6 mt-6">
         <CardHeader className="pb-3">
