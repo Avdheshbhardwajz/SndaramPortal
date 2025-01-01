@@ -30,6 +30,9 @@ export const AddDialog = ({
   const [newData, setNewData] = useState<
     Record<string, string | number | boolean | null>
   >({});
+  const [nonEditableData, setNonEditableData] = useState<
+    Record<string, string | number | boolean | null>
+  >({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -37,14 +40,22 @@ export const AddDialog = ({
     field: string,
     value: string | number | boolean | null
   ) => {
-    setNewData((prev: Record<string, string | number | boolean | null>) => ({
-      ...prev,
-      [field]: value,
-    }));
+    if (!columnConfigs[field].isEditable) {
+      setNonEditableData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    } else {
+      setNewData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const handleClose = () => {
     setNewData({});
+    setNonEditableData({});
     onClose();
   };
 
@@ -54,7 +65,7 @@ export const AddDialog = ({
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
       const payload: RequestDataPayload = {
         table_name: tableName,
-        old_values: {}, // Empty object for new records
+        old_values: nonEditableData,
         new_values: newData,
         maker_id: userData.user_id,
         comments: "New record added",
@@ -92,18 +103,13 @@ export const AddDialog = ({
         </DialogHeader>
         <div className="grid gap-6 py-4 font-poppins">
           {Object.entries(columnConfigs)
-            .filter(
-              ([field]) =>
-                field !== "id" &&
-                field !== "dim_branch_sk" &&
-                columnConfigs[field].isEditable !== false
-            )
+            .filter(([field]) => field !== "id" && field !== "dim_branch_sk")
             .map(([field, config]) => (
               <EditField
                 key={field}
                 field={field}
                 config={config}
-                value={newData[field]}
+                value={config.isEditable ? newData[field] : nonEditableData[field]}
                 onChange={handleFieldChange}
               />
             ))}

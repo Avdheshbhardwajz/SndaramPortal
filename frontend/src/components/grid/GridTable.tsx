@@ -53,9 +53,7 @@ export const GridTable = memo(
     >({});
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
-    const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>(
-      []
-    );
+    const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>([]);
     //const [gridApi, setGridApi] = useState<GridApi | null>(null)
 
     useEffect(() => {
@@ -166,6 +164,10 @@ export const GridTable = memo(
     const handleAddSuccess = useCallback(() => {
       refreshData();
       setIsAddDialogOpen(false);
+      toast({
+        title: "Success",
+        description: "New record added successfully",
+      });
     }, [refreshData]);
 
     const columnDefs = useMemo<ColDef[]>(() => {
