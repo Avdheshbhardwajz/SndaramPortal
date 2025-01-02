@@ -42,6 +42,10 @@ const { removeTable } = require("../controllers/removeTable/removeTable.js");
 const { getAllCheckerRequest } = require('../controllers/getAllCheckerRequest/getAllCheckerRequest.js');
 const { allApprove } = require('../controllers/approveAll/allApprove.js');
 const { allReject } = require('../controllers/allReject/allReject.js');
+const { addRow } = require('../controllers/addRow/addRow.js');
+const { fetchRowRequest } = require('../controllers/fetchRowRequest/fetchRowRequest.js');
+const { acceptRow } = require('../controllers/acceptRow/acceptRow.js');
+
 
 
 // Authentication routes
@@ -87,5 +91,12 @@ router.post('/getallcheckerrequest', getAllCheckerRequest);
 //endpoint to manage bulk requst 
 router.post('/approveall', allApprove);
 router.post('/rejectall', allReject);
+
+//endpoint to handle add of rows 
+
+router.post('/addrow', addRow);
+router.post('/fetchrowrequest', fetchRowRequest);
+router.post('/acceptrow', acceptRow);
+
 
 module.exports = router;
