@@ -71,7 +71,7 @@ exports.tableData = async (req, res) => {
         const checkTableQuery = `
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                WHERE table_schema = 'app' 
                 AND table_name = $1
             );
         `;
@@ -79,16 +79,16 @@ exports.tableData = async (req, res) => {
         
         if (!tableExists.rows[0].exists) {
             return res.status(404).json({ 
-                error: `Table ${tableName} does not exist in the public schema.` 
+                error: `Table ${tableName} does not exist in the app schema.` 
             });
         }
 
         const query = `
             SELECT * 
-            FROM public.${tableName} 
+            FROM app.${tableName} 
             LIMIT $1 OFFSET $2;
         `;
-        const countQuery = `SELECT COUNT(*) AS total FROM public.${tableName};`;
+        const countQuery = `SELECT COUNT(*) AS total FROM app.${tableName};`;
 
         const [dataResult, countResult] = await Promise.all([
             client.query(query, [size, offset]), 
