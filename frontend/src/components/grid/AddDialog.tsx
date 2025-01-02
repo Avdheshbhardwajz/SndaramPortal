@@ -8,8 +8,6 @@ import { Button } from "@/components/ui/button";
 import { EditField } from "./EditField";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { submitRequestData } from "@/services/api";
-import { RequestDataPayload } from "@/types/requestData";
 import { ColumnConfig } from "@/types/grid";
 
 interface AddDialogProps {
@@ -30,9 +28,6 @@ export const AddDialog = ({
   const [newData, setNewData] = useState<
     Record<string, string | number | boolean | null>
   >({});
-  const [nonEditableData, setNonEditableData] = useState<
-    Record<string, string | number | boolean | null>
-  >({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
@@ -40,22 +35,14 @@ export const AddDialog = ({
     field: string,
     value: string | number | boolean | null
   ) => {
-    if (!columnConfigs[field].isEditable) {
-      setNonEditableData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-    } else {
-      setNewData((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
-    }
+    setNewData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   const handleClose = () => {
     setNewData({});
-    setNonEditableData({});
     onClose();
   };
 
@@ -63,15 +50,25 @@ export const AddDialog = ({
     try {
       setIsSaving(true);
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-      const payload: RequestDataPayload = {
-        table_name: tableName,
-        old_values: nonEditableData,
-        new_values: newData,
-        maker_id: userData.user_id,
-        comments: "New record added",
-      };
+      
+      const response = await fetch('http://localhost:8080/addrow', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('makerToken')}`
+        },
+        body: JSON.stringify({
+          table_name: tableName,
+          row_data: JSON.stringify(newData),
+          maker: userData.email
+        })
+      });
 
-      await submitRequestData(payload);
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Failed to add record');
+      }
 
       toast({
         title: "Success",
@@ -109,7 +106,7 @@ export const AddDialog = ({
                 key={field}
                 field={field}
                 config={config}
-                value={config.isEditable ? newData[field] : nonEditableData[field]}
+                value={newData[field]}
                 onChange={handleFieldChange}
               />
             ))}
