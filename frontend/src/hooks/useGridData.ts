@@ -260,11 +260,9 @@ export const useGridData = ({
     };
   }, [tableName]);
 
-  // Handle pagination changes
+  // Handle pagination and page size changes
   useEffect(() => {
-    if (!tableName || pagination.currentPage === 1) return;
-
-    const controller = new AbortController();
+    if (!tableName) return;
 
     const loadPageData = async () => {
       setIsLoading(true);
@@ -285,11 +283,7 @@ export const useGridData = ({
     };
 
     loadPageData();
-
-    return () => {
-      controller.abort();
-    };
-  }, [tableName, pagination.currentPage]);
+  }, [tableName, pagination.currentPage, pagination.pageSize, fetchData, toast]);
 
   const handlePageChange = useCallback((page: number) => {
     setPagination((prev) => ({ ...prev, currentPage: page }));
@@ -299,7 +293,7 @@ export const useGridData = ({
     setPagination((prev) => ({
       ...prev,
       pageSize: newPageSize,
-      currentPage: 1,
+      currentPage: 1, // Reset to first page when changing page size
     }));
   }, []);
 
