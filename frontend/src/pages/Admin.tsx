@@ -1,10 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import {  Edit2, Eye, EyeOff, LogOut, Ban } from 'lucide-react';
+import { Edit2, Eye, EyeOff, LogOut, Ban } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
+import { RowRequestManager } from '@/components/RowRequestManager';
 import {
   Dialog,
   DialogContent,
@@ -274,150 +274,157 @@ const Admin = () => {
   }, [editingUser, validateForm, toast, loadUsers]);
 
   return (
-    <div className="p-6 space-y-6 max-w-6xl mx-auto">
-      {/* Header with Logout Button */}
-      <div className="flex justify-end mb-4">
-        <Button
-          onClick={handleLogout}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Logout
+    <div className="container mx-auto p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <Button variant="outline" onClick={handleLogout}>
+          <LogOut className="mr-2 h-4 w-4" /> Logout
         </Button>
       </div>
 
-      {/* Create User Form */}
-      <Card className='font-poppins'>
-        <CardHeader>
-          <CardTitle className='font-poppins'>
-            Create New User
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreateUser} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {renderFormInput(
-                'firstName',
-                'First Name',
-                'text',
-                newUser.firstName,
-                (e) => setNewUser(prev => ({ ...prev, firstName: e.target.value }))
-              )}
-              {renderFormInput(
-                'lastName',
-                'Last Name',
-                'text',
-                newUser.lastName,
-                (e) => setNewUser(prev => ({ ...prev, lastName: e.target.value }))
-              )}
-              {renderFormInput(
-                'email',
-                'Email',
-                'email',
-                newUser.email,
-                (e) => setNewUser(prev => ({ ...prev, email: e.target.value }))
-              )}
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Password"
-                  value={newUser.password}
-                  onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))} 
-                  className={errors.password ? 'border-red-500' : ''}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-500" />
-                  )}
-                </button>
-                {errors.password && (
-                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+      <div className="grid grid-cols-1 gap-6">
+        {/* User Management Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className='font-poppins'>
+              Create New User
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleCreateUser} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {renderFormInput(
+                  'firstName',
+                  'First Name',
+                  'text',
+                  newUser.firstName,
+                  (e) => setNewUser(prev => ({ ...prev, firstName: e.target.value }))
                 )}
+                {renderFormInput(
+                  'lastName',
+                  'Last Name',
+                  'text',
+                  newUser.lastName,
+                  (e) => setNewUser(prev => ({ ...prev, lastName: e.target.value }))
+                )}
+                {renderFormInput(
+                  'email',
+                  'Email',
+                  'email',
+                  newUser.email,
+                  (e) => setNewUser(prev => ({ ...prev, email: e.target.value }))
+                )}
+                <div className="relative">
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser(prev => ({ ...prev, password: e.target.value }))} 
+                    className={errors.password ? 'border-red-500' : ''}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-500" />
+                    )}
+                  </button>
+                  {errors.password && (
+                    <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Select
+                    value={newUser.role}
+                    onValueChange={(value: 'maker' | 'checker') => setNewUser(prev => ({ ...prev, role: value }))} 
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="maker">Maker</SelectItem>
+                      <SelectItem value="checker">Checker</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Select
-                  value={newUser.role}
-                  onValueChange={(value: 'maker' | 'checker') => setNewUser(prev => ({ ...prev, role: value }))} 
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="maker">Maker</SelectItem>
-                    <SelectItem value="checker">Checker</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <Button
-              type="submit"
-              className="w-full"
-            >
-              Create User
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+              <Button
+                type="submit"
+                className="w-full"
+              >
+                Create User
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
 
-      {/* User Management Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className='font-poppins'>User Management</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto font-poppins">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {users.map((user) => (
-                  <tr key={user.id}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {user.firstName} {user.lastName}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
-                    <td className="px-6 py-4 whitespace-nowrap capitalize">{user.role}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{user.isDisabled ? 'Disabled' : 'Active'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => handleEditClick(user)}
-                        className="inline-flex items-center gap-1"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDisableClick(user)}
-                        disabled={user.isDisabled}
-                      >
-                        <Ban className="h-4 w-4" />
-                      </Button>
-                    </td>
+        {/* User Management Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle className='font-poppins'>User Management</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto font-poppins">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {users.map((user) => (
+                    <tr key={user.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {user.firstName} {user.lastName}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">{user.email}</td>
+                      <td className="px-6 py-4 whitespace-nowrap capitalize">{user.role}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{user.isDisabled ? 'Disabled' : 'Active'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={() => handleEditClick(user)}
+                          className="inline-flex items-center gap-1"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDisableClick(user)}
+                          disabled={user.isDisabled}
+                        >
+                          <Ban className="h-4 w-4" />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Row Requests Section */}
+        <RowRequestManager />
+
+        {/* Configuration Section */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <ColumnConfigurator tables={tables} />
+          <DropdownManager tables={tables} />
+          <GroupConfiguration availableTables={tables} />
+        </div>
+      </div>
 
       {/* Edit User Dialog */}
       <Dialog 
@@ -555,12 +562,6 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <ColumnConfigurator tables={tables} />
-        <DropdownManager tables={tables} />
-        <GroupConfiguration availableTables={tables} />
-      </div>
     </div>
   );
 };

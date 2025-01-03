@@ -4,4 +4,6 @@ export interface RequestDataPayload {
   new_values: Record<string, string | number | boolean | null>;
   maker_id: number;
   comments?: string;
+  row_id?: string | number;
+  table_id?: string;
 }

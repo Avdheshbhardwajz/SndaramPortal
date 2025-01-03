@@ -2,10 +2,8 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 const { v4: uuidv4 } = require('uuid');
 
 exports.requestData = async (req, res) => {
-    // const userId = uuidv4();
     const {
         request_id,
-       
         table_name,
         row_id,
         old_values,
@@ -16,6 +14,7 @@ exports.requestData = async (req, res) => {
         created_at,
         updated_at,
         comments,
+        table_id
     } = req.body;
 
     if (!table_name || !maker_id) {
@@ -33,7 +32,6 @@ exports.requestData = async (req, res) => {
         const insertQuery = `
             INSERT INTO app.change_tracker (
                 request_id,
-               
                 table_name,
                 row_id,
                 old_data,
@@ -43,37 +41,38 @@ exports.requestData = async (req, res) => {
                 checker,
                 created_at,
                 updated_at,
-                comments
+                comments,
+                table_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8 ,  NOW(), NOW(), $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), $9, $10)
             RETURNING *;
         `;
 
         const values = [
-            request_id || uuidv4(),
+            uuidv4(),
             table_name,
-            row_id || null,
-            old_values ? JSON.stringify(old_values) : null,
-            new_values ? JSON.stringify(new_values) : null,
-            status || 'pending',
+            row_id,
+            JSON.stringify(old_values),
+            JSON.stringify(new_values),
+            'pending',
             maker_id,
             checker_id || null,
-            comments || null
+            comments || '',
+            table_id || table_name // Use table_id if provided, otherwise use table_name
         ];
 
         const result = await client_update.query(insertQuery, values);
 
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             message: 'Data inserted successfully',
             data: result.rows[0],
         });
     } catch (error) {
-        console.error('Error:', error);
+        console.error('Error in requestData:', error);
         res.status(500).json({
             success: false,
-            message: 'An error occurred while processing the request',
-            error: error.message,
+            message: error.message || 'Internal server error',
         });
     }
 };

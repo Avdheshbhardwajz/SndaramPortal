@@ -137,6 +137,25 @@ export const GridTable = memo(
         setSaveError(null);
 
         const userData = JSON.parse(localStorage.getItem("userData") || "{}");
+        
+        // Get the first column name and value
+        const firstColumn = Object.keys(columnConfigs)[0];
+        const firstColumnValue = selectedRow[firstColumn];
+        
+        // Convert the value to either string or number
+        const rowId = firstColumnValue != null ? String(firstColumnValue) : undefined;
+
+        // Debug logs
+        console.log('Table Name:', tableName);
+        console.log('Selected Row:', selectedRow);
+        console.log('First Column:', firstColumn);
+        console.log('First Column Value:', firstColumnValue);
+
+        // Ensure tableName is a string and not empty
+        if (!tableName) {
+          throw new Error('Table name is required');
+        }
+
         const payload: RequestDataPayload = {
           table_name: tableName,
           old_values: Object.fromEntries(
@@ -147,7 +166,12 @@ export const GridTable = memo(
           ),
           maker_id: userData.user_id || "",
           comments: "",
+          row_id: rowId,
+          table_id: tableName // This will now be properly saved in the database
         };
+
+        // Debug log for final payload
+        console.log('Final Payload:', JSON.stringify(payload, null, 2));
 
         await submitRequestData(payload);
         refreshData();
@@ -159,7 +183,7 @@ export const GridTable = memo(
       } finally {
         setIsSaving(false);
       }
-    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit]);
+    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit, columnConfigs]);
 
     const handleAddSuccess = useCallback(() => {
       refreshData();

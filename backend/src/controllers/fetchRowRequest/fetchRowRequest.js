@@ -2,30 +2,20 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 
 exports.fetchRowRequest = async (req, res) => {
     try {
-        const { table_name } = req.body;
-
-        // Validate input
-        if (!table_name) {
-            return res.status(400).json({
-                success: false,
-                message: 'Required field: table_name is missing.',
-            });
-        }
-
-        // Query to fetch rows with the same table_name
+        // Query to fetch all pending rows across all tables
         const query = `
             SELECT * 
             FROM app.add_row_table
-            WHERE table_name = $1;
+            WHERE status = 'pending'
+            ORDER BY created_at DESC;
         `;
-        const values = [table_name];
 
-        const result = await client_update.query(query, values);
+        const result = await client_update.query(query);
 
         // Return the fetched rows
         return res.status(200).json({
             success: true,
-            message: 'Rows fetched successfully.',
+            message: 'Pending requests fetched successfully.',
             data: result.rows, // Array of rows
         });
     } catch (error) {

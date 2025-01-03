@@ -12,11 +12,11 @@ exports.fetchColumn = async (req, res) => {
     }
 
     try {
-        // Query to get all column names for the given table in the public schema
+        // Query to get all column names for the given table in the app schema
         const query = `
             SELECT column_name
             FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = $1;
+            WHERE table_schema = 'app' AND table_name = $1;
         `;
         
         // Execute the query
@@ -26,7 +26,7 @@ exports.fetchColumn = async (req, res) => {
         if (result.rowCount === 0) {
             return res.status(404).json({
                 success: false,
-                message: `No columns found for table "${table_name}" in the public schema.`,
+                message: `No columns found for table "${table_name}" in the app schema.`,
             });
         }
 
