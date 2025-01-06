@@ -1,6 +1,17 @@
 import { Button } from "@/components/ui/button"
 import { TableInfo, SelectedTableState } from "@/types/tables"
 
+// List of tables to hide from the sidebar
+const HIDDEN_TABLES = [
+  'OTP_tracker',
+  'add_row_table',
+  'change_tracker',
+  'column_permission',
+  'dynamic_dropdowns',
+  'group_table',
+  'users'
+];
+
 interface SidebarProps {
   sidebarOpen: boolean
   isLoading: boolean
@@ -28,19 +39,21 @@ export const Sidebar = ({
           <div className="text-red-500 text-sm py-2">{error}</div>
         ) : (
           <nav>
-            {tables.map((table, index) => (
-              <Button
-                key={index}
-                onClick={() => setSelectedTable({
-                  name: table.name,
-                  filename: table.filename
-                })}
-                variant="ghost"
-                className="w-full justify-start text-left mb-2 hover:bg-[#00529B] hover:text-white"
-              >
-                {table.name}
-              </Button>
-            ))}
+            {tables
+              .filter(table => !HIDDEN_TABLES.includes(table.name))
+              .map((table, index) => (
+                <Button
+                  key={index}
+                  onClick={() => setSelectedTable({
+                    name: table.name,
+                    filename: table.filename
+                  })}
+                  variant="ghost"
+                  className="w-full justify-start text-left mb-2 hover:bg-[#00529B] hover:text-white"
+                >
+                  {table.name}
+                </Button>
+              ))}
           </nav>
         )}
       </div>

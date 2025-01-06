@@ -3,6 +3,17 @@ import axios from 'axios'
 import { TableInfo, TablesResponse } from '@/types/tables'
 import { useToast } from './use-toast'
 
+// List of tables to hide
+const HIDDEN_TABLES = [
+  'otp_tracker',
+  'add_row_table',
+  'change_tracker',
+  'column_permission',
+  'dynamic_dropdowns',
+  'group_table',
+  'users'
+].map(name => name.toLowerCase());
+
 export const useTables = () => {
   const [tables, setTables] = useState<TableInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -23,7 +34,7 @@ export const useTables = () => {
       const fetchedTables: TableInfo[] = response.data.tables
       .filter((row) => {
         const tableName = row.table_name.toLowerCase();
-        return !['change_tracker', 'column_permission', 'dynamic_dropdowns', 'users'].includes(tableName);
+        return !HIDDEN_TABLES.includes(tableName);
       })
       .map((row) => {
         if (!row?.table_name) {
