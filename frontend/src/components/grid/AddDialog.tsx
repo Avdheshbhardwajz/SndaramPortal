@@ -19,6 +19,8 @@ interface AddDialogProps {
   onSuccess: () => void;
 }
 
+type RowDataValue = string | number | boolean | null;
+
 export const AddDialog = ({
   isOpen,
   onClose,
@@ -26,15 +28,13 @@ export const AddDialog = ({
   tableName,
   onSuccess,
 }: AddDialogProps) => {
-  const [newData, setNewData] = useState<
-    Record<string, string | number | boolean | null>
-  >({});
+  const [newData, setNewData] = useState<Record<string, RowDataValue>>({});
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
 
   const handleFieldChange = (
     field: string,
-    value: string | number | boolean | null
+    value: RowDataValue
   ) => {
     setNewData((prev) => ({
       ...prev,
@@ -52,15 +52,32 @@ export const AddDialog = ({
       setIsSaving(true);
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
       
-      // Generate UUID for row_id
-      const dataWithRowId = {
-        ...newData,
+      // Get current timestamp
+      const currentTime = new Date().toISOString();
+
+      // Create a complete data object with all columns
+      const completeData: Record<string, RowDataValue> = {
         row_id: uuidv4()
       };
 
+      // Add all columns with their values or null
+      Object.entries(columnConfigs).forEach(([field]) => {
+        if (field !== "id" && field !== "dim_branch_sk" && field !== "row_id") {
+          completeData[field] = newData[field] ?? null;
+        }
+      });
+
+      // Add timestamps if the columns exist in columnConfigs
+      if ("created_on" in columnConfigs) {
+        completeData["created_on"] = currentTime;
+      }
+      if ("modified_on" in columnConfigs) {
+        completeData["modified_on"] = currentTime;
+      }
+
       const payload = {
         table_name: tableName,
-        row_data: JSON.stringify(dataWithRowId),
+        row_data: JSON.stringify(completeData),
         maker_id: userData.user_id || "",
         table_id: tableName
       };
@@ -111,7 +128,7 @@ export const AddDialog = ({
         </DialogHeader>
         <div className="grid gap-6 py-4 font-poppins">
           {Object.entries(columnConfigs)
-            .filter(([field]) => field !== "id" && field !== "dim_branch_sk" && field !== "row_id")
+            .filter(([field]) => field !== "id" && field !== "dim_branch_sk" && field !== "row_id" && field !== "created_on" && field !== "modified_on")
             .map(([field, config]) => (
               <EditField
                 key={field}
