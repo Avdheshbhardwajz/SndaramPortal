@@ -11,6 +11,7 @@ interface CheckerActivity {
   status: 'approved' | 'rejected'
   updated_at: string
   reason?: string
+  comments?: string
   old_data: Record<string, unknown>
   new_data: Record<string, unknown>
 }
@@ -111,7 +112,7 @@ export function CheckerLog({ checker }: CheckerLogProps) {
                   <TableCell>
                     {activity.status === 'rejected' && (
                       <span className="text-sm text-muted-foreground">
-                        {activity.reason}
+                        {activity.comments || activity.reason || 'No reason provided'}
                       </span>
                     )}
                   </TableCell>
