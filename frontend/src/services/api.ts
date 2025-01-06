@@ -2,13 +2,13 @@ import axios from 'axios';
 import { RequestDataPayload } from '../types/requestData';
 import { ChangeTrackerResponse, ApproveRejectResponse } from '../types/checkerData';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = '';
 const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 const checkerId = userData.user_id;
 
 export const submitRequestData = async (payload: RequestDataPayload) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/requestdata`, payload);
+    const response = await axios.post(`${API_BASE_URL}/api/requestdata`, payload);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -18,7 +18,7 @@ export const submitRequestData = async (payload: RequestDataPayload) => {
 // Checker API functions
 export const fetchChangeTrackerData = async (): Promise<ChangeTrackerResponse> => {
   try {
-    const response = await axios.get<ChangeTrackerResponse>(`${API_BASE_URL}/fetchchangetrackerdata`);
+    const response = await axios.get<ChangeTrackerResponse>(`${API_BASE_URL}/api/getallcheckerrequest`);
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -30,7 +30,7 @@ export const approveChange = async (
   comments?: string
 ): Promise<ApproveRejectResponse> => {
   try {
-    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/approve`, {
+    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/api/approvechange`, {
       request_id: requestId,
       comments: comments,
       checker: checkerId// Get checker ID from localStorage
@@ -52,7 +52,7 @@ export const rejectChange = async (
 ): Promise<ApproveRejectResponse> => {
   try {
   
-    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/reject`, {
+    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/api/rejectchange`, {
       request_id: requestId,
       comments: comments,
       checker: checkerId // Get checker ID from localStorage

@@ -66,7 +66,7 @@ export default function ColumnConfigurator({
     try {
       setLoading(true);
       const columnsResponse = await axios.post<ColumnResponse>(
-        `http://localhost:8080/fetchcolumn`,
+        `/api/fetchcolumn`,
         { table_name: tableName }
       );
 
@@ -85,7 +85,7 @@ export default function ColumnConfigurator({
 
       try {
         const statusResponse = await axios.post<StatusResponse>(
-          "http://localhost:8080/ColumnPermission",
+          "/api/ColumnPermission",
           {
             table_name: tableName,
             action: "get",
@@ -135,7 +135,7 @@ export default function ColumnConfigurator({
       );
 
       const response = await axios.post<StatusResponse>(
-        "http://localhost:8080/ColumnPermission",
+        "/api/ColumnPermission",
         {
           table_name: selectedTable,
           column_list: updatedColumns,

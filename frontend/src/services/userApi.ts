@@ -4,7 +4,7 @@ interface ErrorResponse {
   message?: string;
 }
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 
 export type UserRole = "maker" | "checker";
 
@@ -20,7 +20,7 @@ export interface User {
 
 export const createUser = async (userData: User) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/signup`, {
+    const response = await axios.post(`${API_BASE_URL}/api/signup`, {
       email: userData.email,
       password: userData.password,
       role: userData.role,
@@ -38,7 +38,7 @@ export const createUser = async (userData: User) => {
 
 export const getAllUsers = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/users`);
+    const response = await axios.get(`${API_BASE_URL}/api/users`);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -50,7 +50,7 @@ export const getAllUsers = async () => {
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/users/${userId}`, {
+    const response = await axios.put(`${API_BASE_URL}/api/users/${userId}`, {
       email: userData.email,
       role: userData.role,
       first_name: userData.firstName,
@@ -68,7 +68,7 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
 
 export const disableUser = async (userId: string) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/disableUser/${userId}`);
+    const response = await axios.put(`${API_BASE_URL}/api/disableUser/${userId}`);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -80,7 +80,7 @@ export const disableUser = async (userId: string) => {
 
 export const deleteUser = async (userId: string) => {
   try {
-    const response = await axios.delete(`${API_BASE_URL}/users/${userId}`);
+    const response = await axios.delete(`${API_BASE_URL}/api/users/${userId}`);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;

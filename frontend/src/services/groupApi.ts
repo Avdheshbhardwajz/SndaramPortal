@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "";
 
 export interface TableGroup {
   group_id: string;
@@ -19,7 +19,7 @@ interface ApiResponse<T> {
 export const getGroupList = async (): Promise<TableGroup[]> => {
   try {
     const response = await axios.get<ApiResponse<TableGroup[]>>(
-      `${API_BASE_URL}/getgrouplist`
+      `${API_BASE_URL}/api/getgrouplist`
     );
     if (!response.data.success) {
       throw new Error(response.data.message || "Failed to fetch groups");
@@ -42,7 +42,7 @@ export const getGroupList = async (): Promise<TableGroup[]> => {
 export const addGroup = async (name: string): Promise<void> => {
   try {
     const response = await axios.post<ApiResponse<void>>(
-      `${API_BASE_URL}/addgroup`,
+      `${API_BASE_URL}/api/addgroup`,
       {
         group_name: name,
       }
@@ -62,7 +62,7 @@ export const addTable = async (
 ): Promise<void> => {
   try {
     const response = await axios.post<ApiResponse<void>>(
-      `${API_BASE_URL}/addtable`,
+      `${API_BASE_URL}/api/addtable`,
       {
         group_name: groupName,
         table_list: [tableName],
@@ -80,7 +80,7 @@ export const addTable = async (
 export const deleteGroup = async (groupName: string): Promise<void> => {
   try {
     const response = await axios.post<ApiResponse<void>>(
-      `${API_BASE_URL}/removegroup`,
+      `${API_BASE_URL}/api/removegroup`,
       {
         group_name: groupName,
       }
@@ -100,7 +100,7 @@ export const deleteTable = async (
 ): Promise<void> => {
   try {
     const response = await axios.post<ApiResponse<void>>(
-      `${API_BASE_URL}/removetable`,
+      `${API_BASE_URL}/api/removetable`,
       {
         group_name: groupName,
         table_name: tableName,

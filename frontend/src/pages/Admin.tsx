@@ -91,7 +91,7 @@ const Admin = () => {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await axios.get(`http://localhost:8080/table`);
+        const response = await axios.get(`/api/table`);
         if (response.data && response.data.success && response.data.tables) {
           // Extract table names from the response
           const tableNames = response.data.tables.map((table: { table_name: string }) => table.table_name);

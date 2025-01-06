@@ -30,7 +30,7 @@ export function CheckerLog({ checker }: CheckerLogProps) {
         return;
       }
 
-      const response = await fetch('http://localhost:8080/getallcheckerrequest', {
+      const response = await fetch('/api/getallcheckerrequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

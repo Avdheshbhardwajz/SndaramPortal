@@ -82,7 +82,7 @@ export const AddDialog = ({
         table_id: tableName
       };
 
-      const response = await fetch('http://localhost:8080/addrow', {
+      const response = await fetch('/api/addrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

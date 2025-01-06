@@ -74,7 +74,7 @@ export const RowRequestManager: React.FC = () => {
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:8080/fetchrowrequest', {
+      const response = await fetch('/api/fetchrowrequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export const RowRequestManager: React.FC = () => {
         throw new Error('Admin ID not found');
       }
 
-      const response = await fetch('http://localhost:8080/acceptrow', {
+      const response = await fetch('/api/approverowrequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
