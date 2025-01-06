@@ -9,6 +9,7 @@ import { EditField } from "./EditField";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ColumnConfig } from "@/types/grid";
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddDialogProps {
   isOpen: boolean;
@@ -51,20 +52,18 @@ export const AddDialog = ({
       setIsSaving(true);
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
       
-      // Debug logs
-      console.log('Table Name:', tableName);
-      console.log('New Data:', newData);
-      console.log('User Data:', userData);
+      // Generate UUID for row_id
+      const dataWithRowId = {
+        ...newData,
+        row_id: uuidv4()
+      };
 
       const payload = {
         table_name: tableName,
-        row_data: JSON.stringify(newData),
+        row_data: JSON.stringify(dataWithRowId),
         maker_id: userData.user_id || "",
         table_id: tableName
       };
-
-      // Debug log for final payload
-      console.log('Final Payload:', JSON.stringify(payload, null, 2));
 
       const response = await fetch('http://localhost:8080/addrow', {
         method: 'POST',
@@ -112,7 +111,7 @@ export const AddDialog = ({
         </DialogHeader>
         <div className="grid gap-6 py-4 font-poppins">
           {Object.entries(columnConfigs)
-            .filter(([field]) => field !== "id" && field !== "dim_branch_sk")
+            .filter(([field]) => field !== "id" && field !== "dim_branch_sk" && field !== "row_id")
             .map(([field, config]) => (
               <EditField
                 key={field}

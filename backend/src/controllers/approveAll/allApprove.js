@@ -14,33 +14,76 @@ exports.allApprove = async (req, res) => {
         // Start transaction
         await client_update.query('BEGIN');
 
-        // Initialize a results array to store responses for each request_id
         const results = [];
 
         for (const request_id of request_ids) {
-            // Update status in change_tracker
-            const updateQuery = `
-                UPDATE app.change_tracker
-                SET 
-                    status = 'approved',
-                    updated_at = NOW(),
-                    checker = $1
-                WHERE request_id = $2
-                AND status = 'pending'
-                RETURNING *;
-            `;
+            try {
+                // Retrieve data from change_tracker
+                const selectQuery = `
+                    SELECT table_name, row_id, new_data
+                    FROM app.change_tracker
+                    WHERE request_id = $1;
+                `;
+                const selectResult = await client_update.query(selectQuery, [request_id]);
 
-            const result = await client_update.query(updateQuery, [checker, request_id]);
+                if (selectResult.rowCount === 0) {
+                    throw new Error(`No record found for request_id: ${request_id}`);
+                }
 
-            if (result.rowCount === 0) {
-                throw new Error(`No pending record found for request_id: ${request_id}`);
+                const { table_name, row_id, new_data } = selectResult.rows[0];
+
+                if (!table_name || !row_id || !new_data) {
+                    throw new Error(
+                        `Invalid data in change_tracker for request_id: ${request_id}. Missing table_name, row_id, or new_data.`
+                    );
+                }
+
+                // Parse new_data
+                const updates = Object.entries(new_data);
+
+                // Construct dynamic SQL
+                const updateColumns = updates
+                    .map(([column, value], index) => `${column} = $${index + 1}`)
+                    .join(', ');
+                const updateValues = updates.map(([, value]) => value);
+                updateValues.push(row_id);
+
+                const dynamicUpdateQuery = `
+                    UPDATE app.${table_name}
+                    SET ${updateColumns}
+                    WHERE row_id = $${updates.length + 1};
+                `;
+                await client_update.query(dynamicUpdateQuery, updateValues);
+
+                // Update change_tracker status
+                const updateTrackerQuery = `
+                    UPDATE app.change_tracker
+                    SET 
+                        status = $1,
+                        updated_at = NOW(),
+                        checker = $2
+                    WHERE request_id = $3
+                    RETURNING *;
+                `;
+                const trackerResult = await client_update.query(updateTrackerQuery, ['approved', checker, request_id]);
+
+                if (trackerResult.rowCount === 0) {
+                    throw new Error(`Failed to update change_tracker for request_id: ${request_id}`);
+                }
+
+                results.push({
+                    request_id,
+                    success: true,
+                    trackerData: trackerResult.rows[0],
+                });
+            } catch (innerError) {
+                console.error(`Error processing request_id ${request_id}:`, innerError);
+                results.push({
+                    request_id,
+                    success: false,
+                    error: innerError.message,
+                });
             }
-
-            results.push({
-                request_id,
-                success: true,
-                data: result.rows[0]
-            });
         }
 
         // Commit transaction
@@ -48,15 +91,16 @@ exports.allApprove = async (req, res) => {
 
         return res.status(200).json({
             success: true,
-            message: 'Changes approved successfully',
-            results
+            message: 'Change requests processed successfully',
+            results,
         });
     } catch (error) {
         await client_update.query('ROLLBACK');
-        console.error('Error in bulk approve:', error);
+        console.error('Error:', error);
         return res.status(500).json({
             success: false,
-            message: error.message || 'Failed to approve changes'
+            message: 'An error occurred while processing the requests',
+            error: error.message,
         });
     }
 };

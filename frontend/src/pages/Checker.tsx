@@ -87,6 +87,47 @@ export default function EnhancedCheckerPage() {
   const { toast } = useToast()
   const navigate = useNavigate()
 
+  const handleApproveAllRequests = async () => {
+    try {
+      setIsLoading(true);
+      const requestIds = pendingChanges.map(change => change.request_id);
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+
+      const response = await fetch('http://localhost:8080/approveall', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          request_ids: requestIds,
+          checker: userData.user_id
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        toast({
+          title: "Success",
+          description: "All changes have been approved successfully"
+        });
+        await loadPendingChanges();
+        setSelectedChanges({});
+      } else {
+        throw new Error(result.message || 'Failed to approve all changes');
+      }
+    } catch (error) {
+      console.error('Error approving all changes:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve all changes"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const loadPendingChanges = async () => {
     try {
       setIsLoading(true)
@@ -457,9 +498,20 @@ export default function EnhancedCheckerPage() {
                   <CardTitle className="text-xl font-semibold text-primary">Overview</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-lg">
-                    You have <span className="font-semibold text-primary">{pendingChanges.length}</span> pending changes to review
-                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-lg">
+                      You have <span className="font-semibold text-primary">{pendingChanges.length}</span> pending changes to review
+                    </p>
+                    {pendingChanges.length > 0 && (
+                      <Button 
+                        onClick={handleApproveAllRequests}
+                        disabled={isLoading}
+                        className="font-medium"
+                      >
+                        {isLoading ? "Approving..." : "Approve All Requests"}
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             )}
