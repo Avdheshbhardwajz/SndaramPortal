@@ -74,7 +74,9 @@ export function EditDialog({
         <div className="flex-grow overflow-hidden">
           <ScrollArea className="h-full px-6 py-2">
             <div className="grid gap-4">
-              {Object.entries(columnConfigs).map(([field, config]) => (
+              {Object.entries(columnConfigs)
+                .filter(([field]) => field !== 'row_id')
+                .map(([field, config]) => (
                 <div
                   key={field}
                   className="grid grid-cols-4 items-center gap-4"

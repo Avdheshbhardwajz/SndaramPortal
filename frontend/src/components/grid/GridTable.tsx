@@ -214,17 +214,19 @@ export const GridTable = memo(
             );
           },
         },
-        ...Object.entries(columnConfigs).map(([field, config]) => ({
-          field,
-          headerName: config.displayName || config.headerName,
-          sortable: true,
-          filter: true,
-          editable: false,
-          cellStyle: () => ({
-            backgroundColor: !columnPermissions[field] ? "#f5f5f5" : "white",
-            cursor: columnPermissions[field] ? "pointer" : "not-allowed",
-          }),
-        })),
+        ...Object.entries(columnConfigs)
+          .filter(([field]) => field !== 'row_id')
+          .map(([field, config]) => ({
+            field,
+            headerName: config.displayName || config.headerName,
+            sortable: true,
+            filter: true,
+            editable: false,
+            cellStyle: () => ({
+              backgroundColor: !columnPermissions[field] ? "#f5f5f5" : "white",
+              cursor: columnPermissions[field] ? "pointer" : "not-allowed",
+            }),
+          })),
       ];
     }, [columnConfigs, handleEditClick, columnPermissions]);
 
