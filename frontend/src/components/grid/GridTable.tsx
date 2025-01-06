@@ -138,18 +138,13 @@ export const GridTable = memo(
 
         const userData = JSON.parse(localStorage.getItem("userData") || "{}");
         
-        // Get the first column name and value
-        const firstColumn = Object.keys(columnConfigs)[0];
-        const firstColumnValue = selectedRow[firstColumn];
-        
-        // Convert the value to either string or number
-        const rowId = firstColumnValue != null ? String(firstColumnValue) : undefined;
+        // Get the row_id value from the selected row
+        const rowId = selectedRow['row_id'] != null ? String(selectedRow['row_id']) : undefined;
 
         // Debug logs
         console.log('Table Name:', tableName);
         console.log('Selected Row:', selectedRow);
-        console.log('First Column:', firstColumn);
-        console.log('First Column Value:', firstColumnValue);
+        console.log('Row ID:', rowId);
 
         // Ensure tableName is a string and not empty
         if (!tableName) {

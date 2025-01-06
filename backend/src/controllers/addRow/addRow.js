@@ -2,12 +2,12 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 const { v4: uuidv4 } = require('uuid');
 
 exports.addRow = async (req, res) => {
-    const { table_name, row_data, maker } = req.body; // Extracting the required fields from the request body
+    const { table_name, row_data, maker_id } = req.body; // Changed maker to maker_id
 
-    if (!table_name || !row_data || !maker) {
+    if (!table_name || !row_data || !maker_id) {
         return res.status(400).json({
             success: false,
-            message: 'Required fields: table_name, row_data, and maker are missing.',
+            message: 'Required fields: table_name, row_data, and maker_id are missing.',
         });
     }
 
@@ -22,7 +22,7 @@ exports.addRow = async (req, res) => {
             INSERT INTO app.add_row_table (request_id, table_name, row_data, status, maker, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, NOW(), NOW());
         `;
-        const values = [request_id, table_name, row_data, 'pending', maker];
+        const values = [request_id, table_name, row_data, 'pending', maker_id]; // Changed maker to maker_id
 
         await client_update.query(query, values);
 

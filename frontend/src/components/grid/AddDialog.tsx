@@ -51,17 +51,28 @@ export const AddDialog = ({
       setIsSaving(true);
       const userData = JSON.parse(localStorage.getItem("userData") || "{}");
       
+      // Debug logs
+      console.log('Table Name:', tableName);
+      console.log('New Data:', newData);
+      console.log('User Data:', userData);
+
+      const payload = {
+        table_name: tableName,
+        row_data: JSON.stringify(newData),
+        maker_id: userData.user_id || "",
+        table_id: tableName
+      };
+
+      // Debug log for final payload
+      console.log('Final Payload:', JSON.stringify(payload, null, 2));
+
       const response = await fetch('http://localhost:8080/addrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('makerToken')}`
         },
-        body: JSON.stringify({
-          table_name: tableName,
-          row_data: JSON.stringify(newData),
-          maker: userData.email
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await response.json();
@@ -80,6 +91,7 @@ export const AddDialog = ({
       const errorMessage =
         error instanceof Error ? error.message : "Failed to add record";
 
+      console.error('Error adding record:', error);
       toast({
         variant: "destructive",
         title: "Error",
