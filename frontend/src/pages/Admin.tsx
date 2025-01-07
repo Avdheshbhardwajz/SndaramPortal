@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import ColumnConfigurator from '@/components/ColumnConfigurator';
 import DropdownManager from '@/components/DropdownManager';
 import GroupConfiguration from '@/components/GroupConfiguration';
-import { createUser, getAllUsers, updateUser, disableUser, User } from '@/services/userApi';
+import { createUser, getAllUsers, updateUser, toggleUserActive, User } from '@/services/userApi';
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import { UserApiResponse, DialogState } from '@/types/user';
@@ -185,40 +185,28 @@ const Admin = () => {
     }
   }, [newUser, validateForm, toast, loadUsers]);
 
-  // Handle disable user
-  const handleDisableClick = useCallback((user: User) => {
-    setDialogState(prev => ({
-      ...prev,
-      disable: { open: true, user }
-    }));
-  }, []);
-
-  const handleDisableConfirm = useCallback(async () => {
-    const user = dialogState.disable.user;
-    if (!user?.id) return;
-
+  // Handle user disable/enable
+  const handleToggleUserActive = async (user: User) => {
     try {
-      await disableUser(user.id.toString());
-      setDialogState(prev => ({
-        ...prev,
-        disable: { open: false, user: null }
-      }));
-      loadUsers();
-      toast({
-        title: "Success",
-        description: "User disabled successfully"
-      });
+      const response = await toggleUserActive(user.id?.toString() || '');
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: response.message,
+        });
+        loadUsers(); // Reload the users list
+      }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Failed to disable user";
+      console.error(error); // Log the error
       toast({
-        variant: "destructive",
         title: "Error",
-        description: errorMessage
+        description: "Failed to update user status",
+        variant: "destructive",
       });
     }
-  }, [dialogState.disable.user, loadUsers, toast]);
+  };
 
-  // Dialog handlers
+  // Handle edit click
   const handleEditClick = useCallback((user: User) => {
     setEditingUser({ ...user });
     setDialogState(prev => ({
@@ -390,6 +378,14 @@ const Admin = () => {
                       <td className="px-6 py-4 whitespace-nowrap">{user.isDisabled ? 'Disabled' : 'Active'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
                         <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleToggleUserActive(user)}
+                          title={user.isDisabled ? "Enable User" : "Disable User"}
+                        >
+                          {user.isDisabled ? <Eye className="h-4 w-4" /> : <Ban className="h-4 w-4" />}
+                        </Button>
+                        <Button
                           variant="secondary"
                           size="sm"
                           onClick={() => handleEditClick(user)}
@@ -397,14 +393,6 @@ const Admin = () => {
                         >
                           <Edit2 className="h-4 w-4" />
                           Edit
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDisableClick(user)}
-                          disabled={user.isDisabled}
-                        >
-                          <Ban className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
@@ -554,7 +542,11 @@ const Admin = () => {
             </Button>
             <Button 
               variant="destructive"
-              onClick={handleDisableConfirm}
+              onClick={() => {
+                if (dialogState.disable.user) {
+                  handleToggleUserActive(dialogState.disable.user);
+                }
+              }}
               className="font-poppins"
             >
               Disable

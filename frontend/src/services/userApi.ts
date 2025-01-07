@@ -4,6 +4,12 @@ interface ErrorResponse {
   message?: string;
 }
 
+interface UserActiveResponse {
+  user_id: string;
+  active: boolean;
+  updated_at: string;
+}
+
 const API_BASE_URL = "http://localhost:8080";
 
 export type UserRole = "maker" | "checker";
@@ -66,26 +72,19 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
   }
 };
 
-export const disableUser = async (userId: string) => {
+export const toggleUserActive = async (userId: string): Promise<{ success: boolean; message: string; data?: UserActiveResponse }> => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/disableUser/${userId}`);
-    return response.data;
-  } catch (error) {
-    const axiosError = error as AxiosError<ErrorResponse>;
-    throw new Error(
-      axiosError.response?.data?.message || "Failed to disable user"
-    );
-  }
-};
+    const response = await axios.post(`${API_BASE_URL}/isactive`, {
+      user_id: userId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+      }
+    });
 
-export const deleteUser = async (userId: string) => {
-  try {
-    const response = await axios.delete(`${API_BASE_URL}/users/${userId}`);
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
-    throw new Error(
-      axiosError.response?.data?.message || "Failed to delete user"
-    );
+    throw new Error(axiosError.response?.data?.message || 'Failed to update user status');
   }
 };

@@ -2,28 +2,26 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 
 exports.isActive = async (req, res) => {
     try {
-        const { user_id, active } = req.body;
+        const { user_id } = req.body;
 
-        if (!user_id || typeof active !== 'boolean') {
+        if (!user_id) {
             return res.status(400).json({
                 success: false,
-                message: 'Required fields: user_id and active (boolean) are missing or invalid.',
+                message: 'Required field: user_id is missing.',
             });
         }
 
         await client_update.query('BEGIN');
 
-        const query = `
-            UPDATE app.users
-            SET active = $1, updated_at = NOW()
-            WHERE user_id = $2
-            RETURNING *;
+        // First, get the current active status
+        const getCurrentStatus = `
+            SELECT active 
+            FROM app.users 
+            WHERE user_id = $1;
         `;
-        const values = [active, user_id];
+        const currentStatus = await client_update.query(getCurrentStatus, [user_id]);
 
-        const result = await client_update.query(query, values);
-
-        if (result.rowCount === 0) {
+        if (currentStatus.rowCount === 0) {
             await client_update.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
@@ -31,11 +29,23 @@ exports.isActive = async (req, res) => {
             });
         }
 
+        // Toggle the active status to its opposite
+        const newActiveStatus = !currentStatus.rows[0].active;
+
+        // Update with the new status
+        const updateQuery = `
+            UPDATE app.users
+            SET active = $1, updated_at = NOW()
+            WHERE user_id = $2
+            RETURNING *;
+        `;
+        const result = await client_update.query(updateQuery, [newActiveStatus, user_id]);
+
         await client_update.query('COMMIT');
 
         return res.status(200).json({
             success: true,
-            message: 'User status updated successfully.',
+            message: `User ${newActiveStatus ? 'enabled' : 'disabled'} successfully.`,
             data: result.rows[0],
         });
     } catch (error) {
