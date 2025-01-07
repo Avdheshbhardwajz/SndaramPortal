@@ -45,7 +45,10 @@ const { allReject } = require('../controllers/allReject/allReject.js');
 const { addRow } = require('../controllers/addRow/addRow.js');
 const { fetchRowRequest } = require('../controllers/fetchRowRequest/fetchRowRequest.js');
 const { acceptRow } = require('../controllers/acceptRow/acceptRow.js');
-
+const { rejectRow } = require('../controllers/rejectRow/rejectRow.js');
+const { rejectAllRow } = require('../controllers/rejectAllRow/rejectAllRow.js');
+const { acceptAllRow } = require('../controllers/approveAllRow/acceptAllRow.js');
+const { isActive } = require('../controllers/isActive/isActive.js');
 
 
 // Authentication routes
@@ -56,7 +59,7 @@ router.post("/signup", createUser);
 router.get("/users", getAllUsers);
 router.get("/users/:id", getUserById);
 router.put("/users/:id", updateUser);
-router.delete("/users/:id", deleteUser);
+router.post('/isactive', isActive);
 
 // Data routes
 router.get("/fetchchangetrackerdata", fetchChangeTrackerData);
@@ -97,6 +100,10 @@ router.post('/rejectall', allReject);
 router.post('/addrow', addRow);
 router.post('/fetchrowrequest', fetchRowRequest);
 router.post('/acceptrow', acceptRow);
+router.post('/acceptallrow', acceptAllRow);
+router.post('/rejectrow', rejectRow);
+router.post('/rejectallrow', rejectAllRow);
+
 
 
 module.exports = router;
