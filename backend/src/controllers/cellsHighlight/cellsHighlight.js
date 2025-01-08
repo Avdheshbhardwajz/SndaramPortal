@@ -1,24 +1,26 @@
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.highlightCells = async (req, res) => {
-    const { userId } = req.body;
+    const { userId, tableName } = req.body;
 
-    if (!userId) {
+    if (!userId || !tableName) {
         return res.status(400).json({
             success: false,
-            message: 'User ID is required'
+            message: 'Both User ID and Table Name are required'
         });
     }
 
     try {
-        // Query to get pending changes for the current user
+        // Query to get pending changes for the current user and specific table
         const query = `
             SELECT table_id, old_data, new_data, row_id
             FROM app.change_tracker
-            WHERE maker = $1 AND status = 'pending';
+            WHERE maker = $1 
+            AND status = 'pending'
+            AND table_id = $2;
         `;
 
-        const result = await client_update.query(query, [userId]);
+        const result = await client_update.query(query, [userId, tableName]);
 
         // Process each row to find changed fields
         const changes = result.rows.map(row => {
@@ -38,6 +40,13 @@ exports.highlightCells = async (req, res) => {
                 row_id: row.row_id,
                 changed_fields: changedFields
             };
+        });
+
+        // Log for debugging
+        console.log('Highlight request:', {
+            userId,
+            tableName,
+            changesFound: changes.length
         });
 
         res.status(200).json({
