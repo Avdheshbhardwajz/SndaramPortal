@@ -11,7 +11,7 @@ interface UserActiveResponse {
 }
 
 interface CellHighlight {
-  table_id: string;
+  table_name: string;
   row_id: string;
   changed_fields: string[];
 }
@@ -95,10 +95,11 @@ export const toggleUserActive = async (userId: string): Promise<{ success: boole
   }
 };
 
-export const getHighlightedCells = async (userId: string): Promise<{ success: boolean; data: CellHighlight[] }> => {
+export const getHighlightedCells = async (userId: string, tableName: string): Promise<{ success: boolean; data: CellHighlight[] }> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/highlight-cells`, {
-      userId
+      userId,
+      tableName
     }, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,

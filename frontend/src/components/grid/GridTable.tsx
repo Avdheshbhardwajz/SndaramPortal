@@ -5,7 +5,7 @@ import "ag-grid-community/styles/ag-theme-alpine.css";
 import { Button } from "@/components/ui/button";
 import { EditDialog } from "./EditDialog";
 import { AddDialog } from "./AddDialog";
-import { ColDef, ICellRendererParams } from "ag-grid-community";
+import { ColDef, ICellRendererParams, CellStyle, CellClassParams } from "ag-grid-community";
 import { Pencil, Plus } from "lucide-react";
 import { useGridData } from "@/hooks/useGridData";
 import { submitRequestData } from "@/services/api";
@@ -14,6 +14,7 @@ import { toast } from "@/hooks/use-toast";
 import axios, { AxiosError } from "axios";
 import { RowData } from "@/types/grid";
 import { ColumnConfig } from "@/types/grid";
+import { getHighlightedCells } from "@/services/userApi";
 
 interface DropdownOption {
   columnName: string;
@@ -54,7 +55,7 @@ export const GridTable = memo(
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>([]);
-    //const [gridApi, setGridApi] = useState<GridApi | null>(null)
+    const [highlightedCells, setHighlightedCells] = useState<Record<string, string[]>>({});
 
     useEffect(() => {
       const fetchDropdownOptions = async () => {
@@ -77,6 +78,30 @@ export const GridTable = memo(
         fetchDropdownOptions();
       }
     }, [tableName]);
+
+    const fetchHighlightedCells = useCallback(async () => {
+      try {
+        const userId = JSON.parse(localStorage.getItem("userData") || "{}").user_id;
+        if (!userId) return;
+        
+        const response = await getHighlightedCells(userId, tableName);
+        if (response.success) {
+          const highlightedCellsMap: Record<string, string[]> = {};
+          response.data.forEach((item) => {
+            highlightedCellsMap[item.row_id] = item.changed_fields;
+          });
+          setHighlightedCells(highlightedCellsMap);
+        }
+      } catch (error) {
+        console.error("Error fetching highlighted cells:", error);
+      }
+    }, [tableName]);
+
+    useEffect(() => {
+      if (tableName) {
+        fetchHighlightedCells();
+      }
+    }, [tableName, fetchHighlightedCells]);
 
     const handleEditClick = useCallback(
       (row: RowData) => {
@@ -189,13 +214,13 @@ export const GridTable = memo(
       });
     }, [refreshData]);
 
-    const columnDefs = useMemo<ColDef[]>(() => {
+    const columnDefs = useMemo<ColDef<RowData>[]>(() => {
       return [
         {
           headerName: "Actions",
           field: "actions",
           width: 100,
-          cellRenderer: (params: ICellRendererParams) => {
+          cellRenderer: (params: ICellRendererParams<RowData>) => {
             const hasEditableColumns = Object.values(columnPermissions).some(
               (isEditable) => isEditable
             );
@@ -222,17 +247,21 @@ export const GridTable = memo(
             sortable: true,
             filter: true,
             editable: false,
-            cellStyle: () => ({
-              backgroundColor: !columnPermissions[field] ? "#f5f5f5" : "white",
-              cursor: columnPermissions[field] ? "pointer" : "not-allowed",
-            }),
+            cellStyle: (params: CellClassParams): CellStyle => {
+              const rowId = params.data?.row_id;
+              const rowIdString = rowId != null ? String(rowId) : undefined;
+              
+              if (rowIdString && highlightedCells[rowIdString]?.includes(field)) {
+                return { backgroundColor: "orange" };
+              }
+              return {
+                backgroundColor: !columnPermissions[field] ? "#f5f5f5" : "white",
+                cursor: columnPermissions[field] ? "pointer" : "not-allowed",
+              };
+            },
           })),
       ];
-    }, [columnConfigs, handleEditClick, columnPermissions]);
-
-    // const onGridReady = useCallback((params: { api: GridApi }) => {
-    //   setGridApi(params.api);
-    // }, []);
+    }, [columnConfigs, handleEditClick, columnPermissions, highlightedCells]);
 
     if (isLoading) {
       return (
@@ -271,7 +300,6 @@ export const GridTable = memo(
               suppressScrollOnNewData={true}
               enableCellTextSelection={true}
               animateRows={true}
-              // onGridReady={onGridReady}
             />
           </div>
 
