@@ -135,7 +135,7 @@ export const RowRequestManager: React.FC = () => {
       setLoading(true);
       console.log('Fetching requests...');
       
-      const response = await fetch('http://localhost:8080/fetchrowrequest', {
+      const response = await fetch('/api/fetchrowrequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,7 +185,7 @@ export const RowRequestManager: React.FC = () => {
       }
 
       console.log('Making API call to accept request');
-      const response = await fetch('http://localhost:8080/acceptrow', {
+      const response = await fetch('/api/acceptrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -239,7 +239,7 @@ export const RowRequestManager: React.FC = () => {
       }
 
       console.log('Making API call to reject request');
-      const response = await fetch('http://localhost:8080/rejectrow', {
+      const response = await fetch('/api/rejectrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -303,7 +303,7 @@ export const RowRequestManager: React.FC = () => {
       }
 
       console.log('Making API call to accept all requests');
-      const response = await fetch('http://localhost:8080/acceptallrow', {
+      const response = await fetch('/api/acceptallrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -367,7 +367,7 @@ export const RowRequestManager: React.FC = () => {
       }
 
       console.log('Making API call to reject all requests');
-      const response = await fetch('http://localhost:8080/rejectallrow', {
+      const response = await fetch('/api/rejectallrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

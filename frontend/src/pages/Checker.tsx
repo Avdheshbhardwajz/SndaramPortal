@@ -93,7 +93,7 @@ export default function EnhancedCheckerPage() {
       const requestIds = pendingChanges.map(change => change.request_id);
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 
-      const response = await fetch('http://localhost:8080/approveall', {
+      const response = await fetch('/api/approveall', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -133,7 +133,7 @@ export default function EnhancedCheckerPage() {
       setIsLoading(true)
       const [changesResponse, groupsResponse] = await Promise.all([
         fetchChangeTrackerData(),
-        fetch('http://localhost:8080/getgrouplist').then(res => res.json())
+        fetch('/api/getgrouplist').then(res => res.json())
       ])
       
       if (changesResponse.success && changesResponse.data) {
@@ -235,7 +235,7 @@ export default function EnhancedCheckerPage() {
       const requestIds = itemsToApprove.map(item => item.request_id);
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
       
-      const response = await fetch('http://localhost:8080/approveall', {
+      const response = await fetch('/api/approveall', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -349,7 +349,7 @@ export default function EnhancedCheckerPage() {
       const requestIds = changesToReject.map(change => change.request_id);
       const userData = JSON.parse(localStorage.getItem('userData') || '{}');
       
-      const response = await fetch('http://localhost:8080/rejectall', {
+      const response = await fetch('/api/rejectall', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -10,7 +10,7 @@ interface UserActiveResponse {
   updated_at: string;
 }
 
-const API_BASE_URL = "http://localhost:8080";
+const API_BASE_URL = "/api";
 
 export type UserRole = "maker" | "checker";
 
