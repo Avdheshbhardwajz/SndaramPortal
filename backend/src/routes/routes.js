@@ -50,7 +50,7 @@ const { rejectAllRow } = require('../controllers/rejectAllRow/rejectAllRow.js');
 const { acceptAllRow } = require('../controllers/approveAllRow/acceptAllRow.js');
 const { isActive } = require('../controllers/isActive/isActive.js');
 const { highlightCells } = require('../controllers/cellsHighlight/cellsHighlight.js');
-
+const { getMakerNotification } = require('../controllers/makerNotification/makerNotification.js');
 
 // Authentication routes
 router.post("/signin", signin);
@@ -103,6 +103,9 @@ router.post('/acceptrow', acceptRow);
 router.post('/rejectrow', rejectRow);
 router.post('/rejectallrow', rejectAllRow);
 router.post('/acceptallrow', acceptAllRow);
+
+// Notification routes
+router.post("/maker-notification", getMakerNotification);
 
 // Cell highlighting endpoint
 router.post('/highlight-cells', highlightCells);
