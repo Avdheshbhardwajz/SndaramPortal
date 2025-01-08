@@ -10,6 +10,12 @@ interface UserActiveResponse {
   updated_at: string;
 }
 
+interface CellHighlight {
+  table_id: string;
+  row_id: string;
+  changed_fields: string[];
+}
+
 const API_BASE_URL = "http://localhost:8080";
 
 export type UserRole = "maker" | "checker";
@@ -86,5 +92,22 @@ export const toggleUserActive = async (userId: string): Promise<{ success: boole
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
     throw new Error(axiosError.response?.data?.message || 'Failed to update user status');
+  }
+};
+
+export const getHighlightedCells = async (userId: string): Promise<{ success: boolean; data: CellHighlight[] }> => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/highlight-cells`, {
+      userId
+    }, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    const axiosError = error as AxiosError<ErrorResponse>;
+    throw new Error(axiosError.response?.data?.message || 'Failed to fetch highlighted cells');
   }
 };

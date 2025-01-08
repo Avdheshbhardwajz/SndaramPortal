@@ -49,6 +49,7 @@ const { rejectRow } = require('../controllers/rejectRow/rejectRow.js');
 const { rejectAllRow } = require('../controllers/rejectAllRow/rejectAllRow.js');
 const { acceptAllRow } = require('../controllers/approveAllRow/acceptAllRow.js');
 const { isActive } = require('../controllers/isActive/isActive.js');
+const { highlightCells } = require('../controllers/cellsHighlight/cellsHighlight.js');
 
 
 // Authentication routes
@@ -96,14 +97,14 @@ router.post('/approveall', allApprove);
 router.post('/rejectall', allReject);
 
 //endpoint to handle add of rows 
-
 router.post('/addrow', addRow);
 router.post('/fetchrowrequest', fetchRowRequest);
 router.post('/acceptrow', acceptRow);
-router.post('/acceptallrow', acceptAllRow);
 router.post('/rejectrow', rejectRow);
 router.post('/rejectallrow', rejectAllRow);
+router.post('/acceptallrow', acceptAllRow);
 
-
+// Cell highlighting endpoint
+router.post('/highlight-cells', highlightCells);
 
 module.exports = router;
