@@ -51,6 +51,7 @@ const { acceptAllRow } = require('../controllers/approveAllRow/acceptAllRow.js')
 const { isActive } = require('../controllers/isActive/isActive.js');
 const { highlightCells } = require('../controllers/cellsHighlight/cellsHighlight.js');
 const { getMakerNotification } = require('../controllers/makerNotification/makerNotification.js');
+const { getCheckerNotification } = require('../controllers/checkerNotification/checkerNotification.js');
 
 // Authentication routes
 router.post("/signin", signin);
@@ -106,6 +107,7 @@ router.post('/acceptallrow', acceptAllRow);
 
 // Notification routes
 router.post("/maker-notification", getMakerNotification);
+router.get("/checker-notification", getCheckerNotification);
 
 // Cell highlighting endpoint
 router.post('/highlight-cells', highlightCells);
