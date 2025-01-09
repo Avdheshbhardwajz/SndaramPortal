@@ -1,25 +1,19 @@
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import logo from "@/assets/Logo.png";
-import { ImportDialog } from "./ImportDialog";
 import { UserMenu } from "./UserMenu";
+import { NotificationIcon } from "./NotificationIcon";
 
 interface HeaderProps {
   sidebarOpen: boolean;
   setSidebarOpen: (open: boolean) => void;
   handleLogout: () => void;
-  handleFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleUpload: () => void;
-  file: File | null;
 }
 
 export const Header = ({
   sidebarOpen,
   setSidebarOpen,
   handleLogout,
-  handleFileChange,
-  handleUpload,
-  file,
 }: HeaderProps) => (
   <header className="bg-white shadow-md p-4 flex items-center justify-between w-full">
     <div className="flex items-center">
@@ -35,11 +29,7 @@ export const Header = ({
       <img src={logo} alt="Sundaram Logo" className="w-[50%] mr-2" />
     </div>
     <div className="flex items-center space-x-4">
-      <ImportDialog
-        handleFileChange={handleFileChange}
-        handleUpload={handleUpload}
-        file={file}
-      />
+      <NotificationIcon />
       <UserMenu handleLogout={handleLogout} />
     </div>
   </header>

@@ -6,22 +6,20 @@ import { SelectedTableState } from '@/types/tables'
 import { useTables } from '@/hooks/useTables'
 import { Header } from '@/components/dashboard/Header'
 import { Sidebar } from '@/components/dashboard/Sidebar'
-
- import { GridTable } from '@/components/grid/GridTable'
+import { GridTable } from '@/components/grid/GridTable'
 import MainContent from '@/components/MainContent'
 import { useToast } from '@/hooks/use-toast'
 
 export default function DashboardLayout() {
   const navigate = useNavigate()
   const { toast } = useToast()
-  const { tables, isLoading: isTablesLoading, error: tablesError, refreshTables } = useTables()
+  const { tables, isLoading: isTablesLoading, error: tablesError } = useTables()
   
   const [selectedTable, setSelectedTable] = useState<SelectedTableState>({
     name: null,
     filename: null
   })
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [file, setFile] = useState<File | null>(null)
 
   // Handle table errors
   useEffect(() => {
@@ -34,50 +32,10 @@ export default function DashboardLayout() {
     }
   }, [tablesError, toast])
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setFile(e.target.files[0])
-    }
-  }
-
   const handleLogout = () => {
     localStorage.removeItem('makerToken')
     localStorage.removeItem('userData');
     navigate('/login')
-  }
-
-  const handleUpload = async () => {
-    if (!file) return
-
-    try {
-      const formData = new FormData()
-      formData.append('file', file)
-
-      const response = await fetch('http://localhost:8080/upload', {
-        method: 'POST',
-        body: formData
-      })
-
-      if (!response.ok) {
-        throw new Error('Upload failed')
-      }
-
-      toast({
-        title: "Success",
-        description: "File uploaded successfully"
-      })
-      
-      setFile(null)
-      // Refresh tables after successful upload
-      refreshTables()
-    } catch (error) {
-      console.error('Upload error:', error)
-      toast({
-        variant: "destructive",
-        title: "Upload Error",
-        description: error instanceof Error ? error.message : 'Failed to upload file'
-      })
-    }
   }
 
   // Show loading state
@@ -95,9 +53,6 @@ export default function DashboardLayout() {
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
         handleLogout={handleLogout}
-        handleFileChange={handleFileChange}
-        handleUpload={handleUpload}
-        file={file}
       />
 
       <div className="flex flex-1 overflow-hidden">
@@ -107,7 +62,7 @@ export default function DashboardLayout() {
           error={tablesError}
           tables={tables}
           setSelectedTable={setSelectedTable}
-          />
+        />
 
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">
           {selectedTable.name && selectedTable.filename ? (
