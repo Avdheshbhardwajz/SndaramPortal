@@ -49,7 +49,7 @@ const UserManagement: React.FC = () => {
           lastName: user.last_name,
           email: user.email,
           role: user.role,
-          isDisabled: user.active  // Reversed logic: active true means disabled
+          isDisabled: !user.active  // When active is false in DB, user is disabled
         }));
         setUsers(transformedUsers);
       }
@@ -104,14 +104,19 @@ const UserManagement: React.FC = () => {
           title: "Success",
           description: response.message,
         });
-        // Update the user's status in the local state
-        setUsers(prevUsers => 
-          prevUsers.map(u => 
-            u.id === user.id 
-              ? { ...u, isDisabled: !u.isDisabled }
-              : u
-          )
-        );
+        
+        // Update local state based on the response from server
+        if (response.data?.active !== undefined) {
+          setUsers(prevUsers => 
+            prevUsers.map(u => 
+              u.id === user.id 
+                ? { ...u, isDisabled: !response.data!.active }
+                : u
+            )
+          );
+        }
+        // Reload users to ensure we're in sync with the database
+        loadUsers();
       }
     } catch (error) {
       console.error(error);
@@ -120,6 +125,8 @@ const UserManagement: React.FC = () => {
         description: "Failed to update user status",
         variant: "destructive",
       });
+      // Refresh users list to ensure UI is in sync with database
+      loadUsers();
     } finally {
       setDialogState(prev => ({
         ...prev,

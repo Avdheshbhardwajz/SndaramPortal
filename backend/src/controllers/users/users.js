@@ -79,7 +79,7 @@ exports.createUser = async (req, res) => {
 exports.getAllUsers = async (req, res) => {
     try {
         const query = `
-            SELECT user_id, email, role, first_name, last_name, created_at, updated_at
+            SELECT user_id, email, role, first_name, last_name, active, created_at, updated_at
             FROM app.users
             ORDER BY created_at DESC;
         `;
