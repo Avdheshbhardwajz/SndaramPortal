@@ -641,7 +641,7 @@ export default function EnhancedCheckerPage() {
       </div>
 
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md bg-white font-poppins">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Reject Changes</DialogTitle>
           </DialogHeader>
