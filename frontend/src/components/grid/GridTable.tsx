@@ -55,7 +55,7 @@ export const GridTable = memo(
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>([]);
-    const [highlightedCells, setHighlightedCells] = useState<Record<string, string[]>>({});
+    const [highlightedCells, setHighlightedCells] = useState<Record<string, string[]>>( {});
 
     useEffect(() => {
       const fetchDropdownOptions = async () => {
@@ -86,6 +86,7 @@ export const GridTable = memo(
         
         const response = await getHighlightedCells(userId, tableName);
         if (response.success) {
+          // Create a map of row_id to changed_fields
           const highlightedCellsMap: Record<string, string[]> = {};
           response.data.forEach((item) => {
             highlightedCellsMap[item.row_id] = item.changed_fields;
@@ -183,28 +184,19 @@ export const GridTable = memo(
           table_id: tableName
         };
 
-        await submitRequestData(payload);
+        const response = await submitRequestData(payload);
 
-        // Immediately update highlightedCells for instant feedback
-        if (rowId) {
-          const changedFields = Object.keys(editedData).filter(key => 
-            JSON.stringify(selectedRow[key]) !== JSON.stringify(editedData[key])
-          );
-          
-          setHighlightedCells(prev => ({
-            ...prev,
-            [rowId]: changedFields
-          }));
-        }
+        if (response.success) {
+          toast({
+            title: "Success",
+            description: "Changes saved successfully",
+          });
 
-        refreshData();
-        handleCloseEdit();
-        
-        // Fetch updated highlights after a short delay to ensure server state is updated
-        setTimeout(() => {
+          // Refresh the data and highlights
+          refreshData();
+          handleCloseEdit();
           fetchHighlightedCells();
-        }, 500);
-
+        }
       } catch (error) {
         const err = error as Error;
         console.error("Error saving changes:", err.message);

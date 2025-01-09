@@ -22,25 +22,36 @@ exports.highlightCells = async (req, res) => {
 
         const result = await client_update.query(query, [userId, tableName]);
 
-        // Process each row to find changed fields
-        const changes = result.rows.map(row => {
+        // Create a map to group changes by row_id
+        const changesMap = {};
+
+        // Process each row and group by row_id
+        result.rows.forEach(row => {
             const oldData = row.old_data;
             const newData = row.new_data;
-            const changedFields = [];
+            const rowId = row.row_id;
+
+            if (!changesMap[rowId]) {
+                changesMap[rowId] = {
+                    table_id: row.table_id,
+                    row_id: rowId,
+                    changed_fields: new Set()
+                };
+            }
 
             // Compare old_data and new_data to find changed fields
             for (const key in newData) {
                 if (JSON.stringify(oldData[key]) !== JSON.stringify(newData[key])) {
-                    changedFields.push(key);
+                    changesMap[rowId].changed_fields.add(key);
                 }
             }
-
-            return {
-                table_id: row.table_id,
-                row_id: row.row_id,
-                changed_fields: changedFields
-            };
         });
+
+        // Convert the map to array and convert Sets to arrays
+        const changes = Object.values(changesMap).map(change => ({
+            ...change,
+            changed_fields: Array.from(change.changed_fields)
+        }));
 
         // Log for debugging
         console.log('Highlight request:', {
@@ -49,17 +60,16 @@ exports.highlightCells = async (req, res) => {
             changesFound: changes.length
         });
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: changes
         });
 
     } catch (error) {
-        console.error('Error fetching cell highlights:', error);
-        res.status(500).json({
+        console.error('Error in highlightCells:', error);
+        return res.status(500).json({
             success: false,
-            message: 'Failed to fetch cell highlights',
-            error: error.message
+            message: 'Internal server error'
         });
     }
 };
