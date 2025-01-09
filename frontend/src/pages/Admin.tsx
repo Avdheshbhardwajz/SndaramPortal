@@ -21,6 +21,7 @@ import { createUser, getAllUsers, updateUser, toggleUserActive, User } from '@/s
 import { useToast } from '@/hooks/use-toast';
 import axios from 'axios';
 import { UserApiResponse, DialogState } from '@/types/user';
+import { AdminNotificationIcon } from "@/components/admin/AdminNotificationIcon";
 
 const INITIAL_USER_STATE: User = {
   firstName: '',
@@ -265,9 +266,12 @@ const Admin = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-        <Button variant="outline" onClick={handleLogout}>
-          <LogOut className="mr-2 h-4 w-4" /> Logout
-        </Button>
+        <div className="flex items-center gap-4">
+          <AdminNotificationIcon />
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" /> Logout
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6">
