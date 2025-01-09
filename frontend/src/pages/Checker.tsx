@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, ChevronRight, History, Home } from 'lucide-react'
+import { LogOut, ChevronRight, History, Home} from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
 import logo from "../assets/Logo.png"
 import { useToast } from "@/hooks/use-toast"
 import { fetchChangeTrackerData, approveChange} from '@/services/api'
@@ -173,17 +174,14 @@ export default function EnhancedCheckerPage() {
 
         setPendingChanges(transformedChanges)
 
-        // Organize changes by groups
         if (groupsResponse.success && groupsResponse.data) {
           const groups = groupsResponse.data as GroupData[]
           const groupedChanges: TableGroups = {}
           
-          // Initialize all groups with empty arrays
           groups.forEach(group => {
             groupedChanges[group.group_name] = []
           })
 
-          // Add ungrouped tables to "Ungrouped" category
           groupedChanges["Ungrouped"] = []
 
           transformedChanges.forEach(change => {
@@ -335,7 +333,6 @@ export default function EnhancedCheckerPage() {
         throw new Error('Rejection reason must not exceed 100 characters');
       }
 
-      // Get selected changes ensuring they are not undefined
       const changesToReject = currentRejectId === 'bulk' 
         ? Object.entries(selectedChanges)
             .filter(([, isSelected]) => isSelected)
@@ -397,67 +394,71 @@ export default function EnhancedCheckerPage() {
 
   return (
     <SidebarProvider>
-      <div className="flex h-screen bg-background font-poppins">
-        <Sidebar className="border-r">
+      <div className="flex h-screen bg-gray-50 font-poppins">
+        <Sidebar className="border-r bg-white shadow-sm w-72">
           <SidebarHeader>
-            <div className="flex items-center justify-between p-4">
-              <div className="flex items-center">
-                <img src={logo} alt="Company Logo" className="h-8 w-auto mr-2" />
-                <h1 className="text-xl font-semibold text-primary">Admin Portal</h1>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckerNotificationIcon />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-5 w-5" />
-                </Button>
+            <div className="flex items-center justify-between p-6">
+              <div className="flex items-center gap-3">
+                <img src={logo} alt="Company Logo" className="h-8 w-auto" />
               </div>
             </div>
           </SidebarHeader>
-          <SidebarContent>
+          <Separator />
+          <SidebarContent className="px-4 py-6">
             <SidebarGroup>
-              <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-              <SidebarGroupContent>
+              <SidebarGroupLabel className="text-sm font-medium text-muted-foreground px-2">
+                Navigation
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="mt-2 space-y-1">
                 <SidebarMenu>
                   <SidebarMenuItem>
                     <SidebarMenuButton 
                       onClick={() => setActiveView('overview')}
-                      className={activeView === 'overview' ? 'bg-secondary' : ''}
+                      className={`w-full justify-start px-2 py-2 text-sm font-medium rounded-md transition-colors
+                        ${activeView === 'overview' ? 'bg-primary/10 text-primary' : 'hover:bg-muted'}`}
                     >
-                      <Home className="mr-2 h-4 w-4" />
+                      <Home className="mr-3 h-4 w-4" />
                       Overview
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton 
                       onClick={() => setActiveView('history')}
-                      className={activeView === 'history' ? 'bg-secondary' : ''}
+                      className={`w-full justify-start px-2 py-2 text-sm font-medium rounded-md transition-colors
+                        ${activeView === 'history' ? 'bg-primary/10 text-primary' : 'hover:bg-muted'}`}
                     >
-                      <History className="mr-2 h-4 w-4" />
+                      <History className="mr-3 h-4 w-4" />
                       History
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>Table Groups</SidebarGroupLabel>
-              <SidebarGroupContent>
+            
+            <SidebarGroup className="mt-8">
+              <SidebarGroupLabel className="text-sm font-medium text-muted-foreground px-2">
+                Table Groups
+              </SidebarGroupLabel>
+              <SidebarGroupContent className="mt-2">
                 {Object.entries(tableGroups).map(([groupName, changes]) => (
-                  <SidebarGroup key={groupName}>
+                  <SidebarGroup key={groupName} className="mb-2">
                     <SidebarGroupLabel 
                       onClick={() => setSelectedGroup(groupName === selectedGroup ? null : groupName)}
-                      className="cursor-pointer flex items-center justify-between"
+                      className="cursor-pointer flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors"
                     >
-                      {groupName}
-                      <Badge variant="secondary" className="font-medium">{changes.length}</Badge>
-                      <ChevronRight className={`h-4 w-4 transition-transform ${selectedGroup === groupName ? 'rotate-90' : ''}`} />
+                      <span className="text-sm font-medium">{groupName}</span>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="font-medium text-xs">
+                          {changes.length}
+                        </Badge>
+                        <ChevronRight 
+                          className={`h-4 w-4 text-muted-foreground transition-transform duration-200
+                            ${selectedGroup === groupName ? 'rotate-90' : ''}`} 
+                        />
+                      </div>
                     </SidebarGroupLabel>
                     {selectedGroup === groupName && (
-                      <SidebarGroupContent>
+                      <SidebarGroupContent className="ml-4 mt-1 space-y-1">
                         <SidebarMenu>
                           {Object.entries(
                             changes.reduce((acc, change) => {
@@ -474,10 +475,15 @@ export default function EnhancedCheckerPage() {
                                   setSelectedTable(tableName)
                                   setActiveView('table')
                                 }}
-                                className={activeView === 'table' && selectedTable === tableName ? 'bg-secondary' : ''}
+                                className={`w-full justify-start px-2 py-1.5 text-sm rounded-md transition-colors
+                                  ${activeView === 'table' && selectedTable === tableName 
+                                    ? 'bg-primary/10 text-primary' 
+                                    : 'hover:bg-muted'}`}
                               >
-                                {tableName}
-                                <Badge variant="secondary" className="ml-auto">{tableChanges.length}</Badge>
+                                <span className="truncate">{tableName}</span>
+                                <Badge variant="secondary" className="ml-auto text-xs">
+                                  {tableChanges.length}
+                                </Badge>
                               </SidebarMenuButton>
                             </SidebarMenuItem>
                           ))}
@@ -492,47 +498,112 @@ export default function EnhancedCheckerPage() {
         </Sidebar>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="flex justify-between items-center p-4 border-b bg-white">
-            <h2 className="text-2xl font-semibold text-primary">
-              {activeView === 'overview' ? 'Overview' : 
-               activeView === 'history' ? 'History' : 
-               selectedTable || 'Table View'}
-            </h2>
-            <Button variant="ghost" onClick={handleLogout} className="font-medium">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
+          <header className="flex justify-between items-center px-8 py-4 bg-white border-b">
+            <div>
+              <h2 className="text-2xl font-semibold text-primary">
+                {activeView === 'overview' ? 'Overview' : 
+                 activeView === 'history' ? 'History' : 
+                 selectedTable || 'Table View'}
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                {activeView === 'overview' ? 'Monitor and manage pending changes' :
+                 activeView === 'history' ? 'View past activities and actions' :
+                 'Review and approve table modifications'}
+              </p>
+            </div>
+            <div className="flex items-center gap-4">
+              <CheckerNotificationIcon />
+              <Separator orientation="vertical" className="h-6" />
+              <Button variant="ghost" onClick={handleLogout} className="font-medium gap-2">
+                <LogOut className="h-4 w-4" />
+                Sign Out
+              </Button>
+            </div>
           </header>
 
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-8">
             {activeView === 'overview' && (
-              <Card className="mb-6">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-xl font-semibold text-primary">Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex justify-between items-center">
-                    <p className="text-lg">
-                      You have <span className="font-semibold text-primary">{pendingChanges.length}</span> pending changes to review
-                    </p>
-                    {pendingChanges.length > 0 && (
-                      <Button 
-                        onClick={handleApproveAllRequests}
-                        disabled={isLoading}
-                        className="font-medium"
-                      >
-                        {isLoading ? "Approving..." : "Approve All Requests"}
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="space-y-6">
+                <Card className="border-none shadow-md">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-xl font-semibold">Overview</CardTitle>
+                    <CardDescription>Summary of pending changes across all tables</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex justify-between items-center">
+                      <div className="space-y-1">
+                        <p className="text-2xl font-semibold text-primary">
+                          {pendingChanges.length}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Pending changes to review
+                        </p>
+                      </div>
+                      {pendingChanges.length > 0 && (
+                        <Button 
+                          onClick={handleApproveAllRequests}
+                          disabled={isLoading}
+                          className="font-medium"
+                          size="lg"
+                        >
+                          {isLoading ? "Approving..." : "Approve All Requests"}
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {Object.entries(tableGroups).map(([groupName, changes]) => 
+                  changes.length > 0 && (
+                    <Card key={groupName} className="border-none shadow-md">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-lg font-semibold">{groupName}</CardTitle>
+                        <CardDescription>
+                          {changes.length} pending changes in this group
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {Object.entries(
+                            changes.reduce((acc, change) => {
+                              if (!acc[change.tableName]) {
+                                acc[change.tableName] = [];
+                              }
+                              acc[change.tableName].push(change);
+                              return acc;
+                            }, {} as Record<string, Change[]>)
+                          ).map(([tableName, tableChanges]) => (
+                            <div key={tableName} className="flex items-center justify-between">
+                              <div className="space-y-1">
+                                <p className="font-medium">{tableName}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {tableChanges.length} changes pending
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                onClick={() => {
+                                  setSelectedTable(tableName)
+                                  setActiveView('table')
+                                }}
+                              >
+                                Review Changes
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                )}
+              </div>
             )}
 
             {activeView === 'history' && (
-              <Card>
+              <Card className="border-none shadow-md">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-xl font-semibold text-primary">Checker Log</CardTitle>
+                  <CardTitle className="text-xl font-semibold">Checker Log</CardTitle>
+                  <CardDescription>Review past approvals and rejections</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <CheckerLog checker={JSON.parse(localStorage.getItem('userData') || '{}').user_id || ''} />
@@ -541,11 +612,14 @@ export default function EnhancedCheckerPage() {
             )}
 
             {activeView === 'table' && selectedTable && (
-              <Card>
+              <Card className="border-none shadow-md">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-xl font-semibold text-primary">
-                    {selectedTable} - Pending Changes
+                  <CardTitle className="text-xl font-semibold">
+                    {selectedTable}
                   </CardTitle>
+                  <CardDescription>
+                    Review and manage pending changes for this table
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <TableContent 
@@ -567,30 +641,33 @@ export default function EnhancedCheckerPage() {
       </div>
 
       <Dialog open={isRejectModalOpen} onOpenChange={setIsRejectModalOpen}>
-        <DialogContent className="font-poppins">
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold text-primary">Reject Changes</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Reject Changes</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="reason" className="text-sm font-medium">Reason for rejection</Label>
+              <Label htmlFor="reason" className="text-sm font-medium">
+                Reason for rejection
+              </Label>
               <Input
                 id="reason"
                 placeholder="Enter reason for rejection"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
-                className="font-poppins"
               />
+              <p className="text-xs text-muted-foreground">
+                Maximum 100 characters
+              </p>
             </div>
           </div>
           <DialogFooter>
             <Button 
               variant="outline" 
               onClick={() => {
-                setIsRejectModalOpen(false);
-                setRejectReason("");
+                setIsRejectModalOpen(false)
+                setRejectReason("")
               }}
-              className="font-medium"
             >
               Cancel
             </Button>
@@ -598,7 +675,6 @@ export default function EnhancedCheckerPage() {
               variant="destructive" 
               onClick={submitReject}
               disabled={isLoading || !rejectReason.trim()}
-              className="font-medium"
             >
               {isLoading ? "Rejecting..." : "Reject"}
             </Button>
