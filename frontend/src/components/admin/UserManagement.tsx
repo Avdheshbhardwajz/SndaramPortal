@@ -49,7 +49,7 @@ const UserManagement: React.FC = () => {
           lastName: user.last_name,
           email: user.email,
           role: user.role,
-          isDisabled: user.is_disabled
+          isDisabled: user.active  // Reversed logic: active true means disabled
         }));
         setUsers(transformedUsers);
       }
@@ -77,16 +77,56 @@ const UserManagement: React.FC = () => {
     if (!user.email?.trim()) errors.email = 'Email is required';
     if (!emailRegex.test(user.email)) errors.email = 'Invalid email format';
     
-    // Password validation for new users
-    if (!isEdit) {
-      if (!user.password) {
-        errors.password = 'Password is required';
-      } else if (user.password.length < 8) {
-        errors.password = 'Password must be at least 8 characters';
-      }
+    if (!isEdit && !user.password) {
+      errors.password = 'Password is required';
+    } else if (user.password && user.password.length < 8) {
+      errors.password = 'Password must be at least 8 characters';
     }
     return errors;
   }, []);
+
+  // Handle user disable/enable
+  const handleToggleUserActive = async (user: User) => {
+    setDialogState(prev => ({
+      ...prev,
+      disable: { open: true, user }
+    }));
+  };
+
+  const confirmToggleUserActive = async () => {
+    const user = dialogState.disable.user;
+    if (!user?.id) return;
+
+    try {
+      const response = await toggleUserActive(user.id.toString());
+      if (response.success) {
+        toast({
+          title: "Success",
+          description: response.message,
+        });
+        // Update the user's status in the local state
+        setUsers(prevUsers => 
+          prevUsers.map(u => 
+            u.id === user.id 
+              ? { ...u, isDisabled: !u.isDisabled }
+              : u
+          )
+        );
+      }
+    } catch (error) {
+      console.error(error);
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    } finally {
+      setDialogState(prev => ({
+        ...prev,
+        disable: { open: false, user: null }
+      }));
+    }
+  };
 
   // Render helpers
   const renderFormInput = useCallback((field: keyof User, label: string, type: string = 'text', value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void) => (
@@ -141,49 +181,6 @@ const UserManagement: React.FC = () => {
       });
     }
   }, [newUser, validateForm, toast, loadUsers]);
-
-  // Handle user disable/enable
-  const handleToggleUserActive = async (user: User) => {
-    setDialogState(prev => ({
-      ...prev,
-      disable: { open: true, user }
-    }));
-  };
-
-  const confirmToggleUserActive = async () => {
-    const user = dialogState.disable.user;
-    if (!user?.id) return;
-
-    try {
-      const response = await toggleUserActive(user.id.toString());
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: response.message,
-        });
-        // Update the user's status in the local state immediately
-        setUsers(prevUsers => 
-          prevUsers.map(u => 
-            u.id === user.id 
-              ? { ...u, isDisabled: !u.isDisabled }
-              : u
-          )
-        );
-      }
-    } catch (error) {
-      console.error(error);
-      toast({
-        title: "Error",
-        description: "Failed to update user status",
-        variant: "destructive",
-      });
-    } finally {
-      setDialogState(prev => ({
-        ...prev,
-        disable: { open: false, user: null }
-      }));
-    }
-  };
 
   // Handle edit click
   const handleEditClick = useCallback((user: User) => {
