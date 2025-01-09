@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast"
 import { fetchChangeTrackerData, approveChange} from '@/services/api'
 import { CheckerLog } from '@/components/CheckerLog'
 import { TableContent } from '@/components/ui/TableContent'
+import { CheckerNotificationIcon } from '@/components/checker/CheckerNotificationIcon'
 import {
   Sidebar,
   SidebarContent,
@@ -399,9 +400,21 @@ export default function EnhancedCheckerPage() {
       <div className="flex h-screen bg-background font-poppins">
         <Sidebar className="border-r">
           <SidebarHeader>
-            <div className="flex items-center p-4">
-              <img src={logo} alt="Company Logo" className="h-8 w-auto mr-2" />
-              <h1 className="text-xl font-semibold text-primary">Admin Portal</h1>
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center">
+                <img src={logo} alt="Company Logo" className="h-8 w-auto mr-2" />
+                <h1 className="text-xl font-semibold text-primary">Admin Portal</h1>
+              </div>
+              <div className="flex items-center space-x-2">
+                <CheckerNotificationIcon />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </SidebarHeader>
           <SidebarContent>
