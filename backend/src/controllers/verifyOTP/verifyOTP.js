@@ -1,5 +1,7 @@
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
 exports.verifyOTP = async (req, res) => {
     const { email, OTP } = req.body;
@@ -14,6 +16,35 @@ exports.verifyOTP = async (req, res) => {
     try {
         // Begin a transaction
         await client_update.query('BEGIN');
+
+        // First check if user is active
+        const userQuery = `
+            SELECT user_id, email, role, first_name, last_name, active
+            FROM app."users"
+            WHERE email = $1
+            LIMIT 1;
+        `;
+
+        const userResult = await client_update.query(userQuery, [email]);
+
+        if (userResult.rows.length === 0) {
+            await client_update.query('ROLLBACK');
+            return res.status(404).json({
+                success: false,
+                message: 'User not found.',
+            });
+        }
+
+        const user = userResult.rows[0];
+
+        // Check if user is active
+        if (!user.active) {
+            await client_update.query('ROLLBACK');
+            return res.status(403).json({
+                success: false,
+                message: 'Account is inactive. Please contact administrator.',
+            });
+        }
 
         // Query to get stored OTP data
         const getOtpQuery = `
@@ -43,9 +74,30 @@ exports.verifyOTP = async (req, res) => {
                 await client_update.query(updateQuery, [email]);
                 await client_update.query('COMMIT');
 
+                // Generate JWT token
+                const token = jwt.sign(
+                    {
+                        user_id: user.user_id,
+                        email: user.email,
+                        role: user.role,
+                        first_name: user.first_name,
+                        last_name: user.last_name
+                    },
+                    process.env.JWT_SECRET,
+                    { expiresIn: '24h' }
+                );
+
                 return res.status(200).json({
                     success: true,
                     message: 'OTP verified successfully.',
+                    token: token,
+                    user: {
+                      
+                        email: user.email,
+                        role: user.role,
+                        first_name: user.first_name,
+                        last_name: user.last_name
+                    }
                 });
             } else {
                 await client_update.query('ROLLBACK');
