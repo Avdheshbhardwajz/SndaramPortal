@@ -53,10 +53,17 @@ const { highlightCells } = require('../controllers/cellsHighlight/cellsHighlight
 const { getMakerNotification } = require('../controllers/makerNotification/makerNotification.js');
 const { getCheckerNotification } = require('../controllers/checkerNotification/checkerNotification.js');
 const { getAdminNotification } = require('../controllers/adminNotification/adminNotification.js');
+const { sendOTP } = require('../controllers/sendOTP/sendOTP.js');
+const { verifyOTP } = require('../controllers/verifyOTP/verifyOTP.js');
+
 
 // Authentication routes
 router.post("/signin", signin);
 router.post("/signup", createUser);
+
+//opt auth endpoints 
+router.post('/send-otp', sendOTP);
+router.post('/verify-otp', verifyOTP);
 
 // User management routes
 router.get("/users", getAllUsers);
