@@ -230,6 +230,14 @@ export const useGridData = ({
       setIsLoading(true);
       setError(null);
 
+      // Reset pagination when table changes
+      setPagination((prev) => ({
+        ...prev,
+        currentPage: 1,
+        total: 0,
+        totalPages: 0,
+      }));
+
       try {
         await fetchColumnPermissions();
         await fetchData(1, pagination.pageSize);
