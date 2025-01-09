@@ -46,7 +46,9 @@ exports.isActive = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: `User ${newActiveStatus ? 'enabled' : 'disabled'} successfully.`,
-            data: result.rows[0],
+            data: {
+                isActive: newActiveStatus
+            }
         });
     } catch (error) {
         await client_update.query('ROLLBACK');

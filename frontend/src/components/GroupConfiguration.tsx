@@ -352,7 +352,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
             open={isAddTablesDialogOpen}
             onOpenChange={setIsAddTablesDialogOpen}
           >
-            <DialogContent className="bg-white">
+            <DialogContent className="bg-white max-h-[80vh] flex flex-col">
               <DialogHeader>
                 <DialogTitle className="font-['Poppins']">
                   Add Tables to Group
@@ -361,12 +361,12 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
                   Select tables to add to {selectedGroup?.group_name}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
+              <div className="flex-1 min-h-0 py-4">
+                <div className="space-y-2 overflow-y-auto max-h-[50vh] pr-4">
                   {availableTables.map((table) => (
                     <div
                       key={`table-option-${table}`}
-                      className="flex items-center space-x-2"
+                      className="flex items-center space-x-2 py-1"
                     >
                       <Checkbox
                         id={`checkbox-${table}`}
