@@ -163,15 +163,8 @@ export const GridTable = memo(
 
         const userData = JSON.parse(localStorage.getItem("userData") || "{}");
         
-        // Get the row_id value from the selected row
         const rowId = selectedRow['row_id'] != null ? String(selectedRow['row_id']) : undefined;
 
-        // Debug logs
-        console.log('Table Name:', tableName);
-        console.log('Selected Row:', selectedRow);
-        console.log('Row ID:', rowId);
-
-        // Ensure tableName is a string and not empty
         if (!tableName) {
           throw new Error('Table name is required');
         }
@@ -187,15 +180,31 @@ export const GridTable = memo(
           maker_id: userData.user_id || "",
           comments: "",
           row_id: rowId,
-          table_id: tableName // This will now be properly saved in the database
+          table_id: tableName
         };
 
-        // Debug log for final payload
-        console.log('Final Payload:', JSON.stringify(payload, null, 2));
-
         await submitRequestData(payload);
+
+        // Immediately update highlightedCells for instant feedback
+        if (rowId) {
+          const changedFields = Object.keys(editedData).filter(key => 
+            JSON.stringify(selectedRow[key]) !== JSON.stringify(editedData[key])
+          );
+          
+          setHighlightedCells(prev => ({
+            ...prev,
+            [rowId]: changedFields
+          }));
+        }
+
         refreshData();
         handleCloseEdit();
+        
+        // Fetch updated highlights after a short delay to ensure server state is updated
+        setTimeout(() => {
+          fetchHighlightedCells();
+        }, 500);
+
       } catch (error) {
         const err = error as Error;
         console.error("Error saving changes:", err.message);
@@ -203,7 +212,7 @@ export const GridTable = memo(
       } finally {
         setIsSaving(false);
       }
-    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit, columnConfigs]);
+    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit, fetchHighlightedCells]);
 
     const handleAddSuccess = useCallback(() => {
       refreshData();
