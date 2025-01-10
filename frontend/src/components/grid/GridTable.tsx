@@ -16,19 +16,20 @@ import { RowData } from "@/types/grid";
 import { ColumnConfig } from "@/types/grid";
 import { getHighlightedCells } from "@/services/userApi";
 
+
 interface DropdownOption {
   columnName: string;
   options: string[];
 }
 
-interface GridTableProps {
-  tableName: string;
-  initialPageSize?: number;
-}
-
 interface DropdownResponse {
   success: boolean;
   data: DropdownOption[];
+}
+
+interface GridTableProps {
+  tableName: string;
+  initialPageSize?: number;
 }
 
 export const GridTable = memo(
@@ -49,20 +50,29 @@ export const GridTable = memo(
     const [editedData, setEditedData] = useState<RowData | null>(null);
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<
-      Record<string, string>
-    >({});
+    const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [dropdownOptions, setDropdownOptions] = useState<DropdownOption[]>([]);
-    const [highlightedCells, setHighlightedCells] = useState<Record<string, string[]>>( {});
+    const [highlightedCells, setHighlightedCells] = useState<Record<string, string[]>>({});
 
     useEffect(() => {
       const fetchDropdownOptions = async () => {
         try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            console.error('No auth token found');
+            return;
+          }
+
           const response = await axios.post<DropdownResponse>(
             "http://localhost:8080/fetchDropdownOptions",
-            { table_name: tableName }
+            { table_name: tableName },
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
           );
 
           if (response.data.success && response.data.data) {
@@ -70,14 +80,23 @@ export const GridTable = memo(
           }
         } catch (error) {
           const axiosError = error as AxiosError;
+          if (axiosError.response?.status === 401) {
+            window.location.href = '/auth';
+            return;
+          }
           console.error("Error fetching dropdown options:", axiosError.message);
+          toast({
+            title: "Error",
+            description: "Failed to fetch dropdown options",
+            variant: "destructive",
+          });
         }
       };
 
       if (tableName) {
         fetchDropdownOptions();
       }
-    }, [tableName]);
+    }, [tableName, toast]);
 
     const fetchHighlightedCells = useCallback(async () => {
       try {
@@ -109,6 +128,7 @@ export const GridTable = memo(
         const hasEditableColumns = Object.values(columnPermissions).some(
           (isEditable) => isEditable
         );
+
         if (!hasEditableColumns) {
           toast({
             title: "Cannot Edit",

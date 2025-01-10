@@ -56,9 +56,14 @@ export function EditDialog({
 }: EditDialogProps) {
   if (!selectedRowData || !editedData) return null;
 
-  const getDropdownOptionsForColumn = (columnName: string) => {
-    const options = dropdownOptions.find((opt) => opt.columnName === columnName)?.options || [];
-    return options.filter(option => option && option.trim() !== ''); // Filter out empty or whitespace-only options
+  const getDropdownOptionsForColumn = (columnName: string): string[] => {
+    const option = dropdownOptions.find(opt => opt.columnName === columnName);
+    return option?.options ?? [];
+  };
+
+  const isDropdownColumn = (columnName: string): boolean => {
+    const options = getDropdownOptionsForColumn(columnName);
+    return options.length > 0;
   };
 
   return (
@@ -71,59 +76,56 @@ export function EditDialog({
           <ScrollArea className="h-full px-6 py-2">
             <div className="grid gap-4">
               {Object.entries(columnConfigs)
-                .filter(([field]) => field !== 'row_id')
-                .map(([field, config]) => {
-                  const dropdownOptions = getDropdownOptionsForColumn(field);
-                  const shouldUseDropdown = dropdownOptions.length > 0;
-
-                  return (
-                    <div
-                      key={field}
-                      className="grid grid-cols-4 items-center gap-4"
-                    >
-                      <Label htmlFor={field} className="text-right">
-                        {config.displayName}
-                      </Label>
-                      <div className="col-span-3">
-                        {shouldUseDropdown ? (
-                          <Select
-                            value={String(editedData[field] || "")}
-                            onValueChange={(value) => onInputChange(field, value)}
-                            disabled={config.readOnly}
-                          >
-                            <SelectTrigger
-                              className={
-                                validationErrors[field] ? "border-red-500" : ""
-                              }
-                            >
-                              <SelectValue placeholder="Select an option" />
-                            </SelectTrigger>
-                            <SelectContent className="bg-white font-poppins">
-                              {dropdownOptions.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                  {option}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <Input
-                            id={field}
-                            value={String(editedData[field] || "")}
-                            onChange={(e) => onInputChange(field, e.target.value)}
-                            className={validationErrors[field] ? "border-red-500" : ""}
-                            disabled={config.readOnly}
-                          />
-                        )}
-                        {validationErrors[field] && (
-                          <span className="text-red-500 text-sm">
-                            {validationErrors[field]}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+                .filter(([field]) => field !== "row_id")
+                .map(([field, config]) => (
+                <div
+                  key={field}
+                  className="grid grid-cols-4 items-center gap-4"
+                >
+                  <Label htmlFor={field} className="text-right">
+                    {config.displayName || config.headerName}
+                  </Label>
+                  <div className="col-span-3">
+                    {isDropdownColumn(field) ? (
+                      <Select
+                        value={String(editedData[field] || "")}
+                        onValueChange={(value) => onInputChange(field, value)}
+                        disabled={config.readOnly}
+                      >
+                        <SelectTrigger
+                          className={
+                            validationErrors[field] ? "border-red-500" : ""
+                          }
+                        >
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-white font-poppins">
+                          {getDropdownOptionsForColumn(field).map((option) => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        id={field}
+                        value={String(editedData[field] || "")}
+                        onChange={(e) => onInputChange(field, e.target.value)}
+                        className={`${
+                          validationErrors[field] ? "border-red-500" : ""
+                        } ${config.readOnly ? "bg-gray-100" : ""}`}
+                        disabled={config.readOnly}
+                      />
+                    )}
+                    {validationErrors[field] && (
+                      <span className="text-sm text-red-500">
+                        {validationErrors[field]}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
           </ScrollArea>
         </div>
