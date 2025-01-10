@@ -1,58 +1,113 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useOtp } from '../hooks/useOTP';
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { AlertCircle } from 'lucide-react'
 
- import EditorLogin from '@/components/Editorlogin';
-
-
-import logo from "../assets/Logo.png";
+// interface User {
+//   user_id: string;
+//   email: string;
+//   role: 'admin' | 'maker' | 'checker';
+//   first_name: string;
+//   last_name: string;
+// }
 
 const Auth: React.FC = () => {
-  
-  return (
-    <div className="min-h-screen w-full flex font-poppins">
-      {/* Left Section - Company Branding (70%) */}
-      <div className="hidden lg:flex w-[70%] bg-white relative">
-        {/* Overlay with company info */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-900 z-10 p-8">
-          <div className="flex items-center justify-center gap-3 mb-8">
-            {/* Replace with your company logo */}
-            <div className="w-[50%]  bg-white rounded-lg flex items-center justify-center">
-              <span className="text-slate-900 text-2xl font-bold">
-                <img src={logo} alt="Sundaram Logo" />
-              </span>
-            </div>
-           
-          </div>
-          
-          {/* Main image placeholder */}
-          {/* <div className="w-full max-w-3xl p-4  bg-white mb-8 overflow-hidden">
-            <img 
-              src={logo}
-              alt="Company showcase"
-              className="w-[100%] r"
-            />
-          </div> */}
-          
-          {/* Company description */}
-          <div className="text-center max-w-2xl">
-            <h1 className="text-3xl font-bold mb-4">Welcome to Your Platform</h1>
-            <p className="text-slate-900">
-              Access your dashboard to manage content, track analytics, and more.
-              Our platform provides powerful tools for both editors and administrators.
-            </p>
-          </div>
-        </div>
-        
-        {/* Background pattern */}
-        <div className="absolute inset-0 opacity-50 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]"></div>
-      </div>
+  const navigate = useNavigate();
+  const { email, otp, isOtpSent, error, setEmail, setOtp, sendOtp, verifyOtp } = useOtp();
 
-      {/* Right Section - Auth Forms (30%) */}
-      <div className="w-full lg:w-[30%] flex flex-col items-center justify-center p-6 bg-gray-50">
-        <div className="w-full max-w-md space-y-6">
-        <EditorLogin />
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (!isOtpSent) {
+        const sent = await sendOtp();
+        if (!sent) {
+          return; // Error is handled by the hook
+        }
+      } else {
+        const response = await verifyOtp();
+        if (response?.success && response.token && response.user) {
+          // Store token and user data
+          localStorage.setItem('token', response.token);
+          localStorage.setItem('user', JSON.stringify(response.user));
           
-        </div>
-      </div>
+          // Navigate based on role
+          switch (response.user.role) {
+            case 'admin':
+              navigate('/admin');
+              break;
+            case 'maker':
+              navigate('/dashboard');
+              break;
+            case 'checker':
+              navigate('/checker');
+              break;
+            default:
+              navigate('/login');
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Authentication error:', err);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <Card className="w-[350px]">
+        <CardHeader>
+          <CardTitle>Welcome</CardTitle>
+          <CardDescription>
+            {isOtpSent ? "Enter the OTP sent to your email" : "Enter your email to receive an OTP"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="grid w-full items-center gap-4">
+              {!isOtpSent && (
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    required
+                  />
+                </div>
+              )}
+              {isOtpSent && (
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="otp">OTP</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    placeholder="Enter OTP"
+                    required
+                  />
+                </div>
+              )}
+            </div>
+            <Button type="submit" className="w-full mt-4">
+              {isOtpSent ? "Verify OTP" : "Send OTP"}
+            </Button>
+          </form>
+        </CardContent>
+        {error && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+      </Card>
     </div>
   );
 };

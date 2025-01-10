@@ -5,38 +5,16 @@ import Admin from './pages/Admin';
 import DashboardLayout from './pages/DashboardLayout';
 import Checker from './pages/Checker';
 
-// Auth Guard Component
-const AuthGuard: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const adminToken = localStorage.getItem('adminToken');
-  const makerToken = localStorage.getItem('makerToken');
-  const checkerToken = localStorage.getItem('checkerToken');
-
-  // Redirect based on token type
-  if (adminToken) {
-    return <Navigate to="/admin" replace />;
-  }
-  
-  if (makerToken) {
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  if (checkerToken) {
-    return <Navigate to="/checker" replace />;
-  }
-
-  return <>{children}</>;
-};
-
-// Protected Route Component
 interface ProtectedRouteProps {
   children: React.ReactNode;
   allowedRole: 'admin' | 'maker' | 'checker';
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRole }) => {
-  const token = localStorage.getItem(`${allowedRole}Token`);
+  const token = localStorage.getItem('token');
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
   
-  if (!token) {
+  if (!token || user.role !== allowedRole) {
     return <Navigate to="/login" replace />;
   }
 
@@ -48,14 +26,7 @@ const App: React.FC = () => {
     <Router>
       <Routes>
         {/* Public Auth Route */}
-        <Route 
-          path="/login" 
-          element={
-            <AuthGuard>
-              <Auth />
-            </AuthGuard>
-          } 
-        />
+        <Route path="/login" element={<Auth />} />
 
         {/* Admin Route */}
         <Route
@@ -88,19 +59,14 @@ const App: React.FC = () => {
         />
 
         {/* Default Route */}
-        <Route 
-          path="/" 
-          element={<Navigate to="/login" replace />} 
-        />
+        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Catch all other routes */}
-        <Route 
-          path="*" 
-          element={<Navigate to="/login" replace />} 
-        />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );
 };
 
 export default App;
+
