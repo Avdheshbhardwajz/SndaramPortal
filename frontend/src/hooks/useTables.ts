@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { TableInfo, TablesResponse } from '@/types/tables'
 import { useToast } from './use-toast'
 
@@ -14,6 +14,10 @@ const HIDDEN_TABLES = [
   'users'
 ].map(name => name.toLowerCase());
 
+interface ErrorResponse {
+  message: string;
+}
+
 export const useTables = () => {
   const [tables, setTables] = useState<TableInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -25,7 +29,16 @@ export const useTables = () => {
       setIsLoading(true)
       setError(null)
 
-      const response = await axios.get<TablesResponse>('http://localhost:8080/table')
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('Authentication token not found')
+      }
+
+      const response = await axios.get<TablesResponse>('http://localhost:8080/table', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
       
       if (!response.data?.success || !Array.isArray(response.data?.tables)) {
         throw new Error('Invalid response format')
@@ -48,12 +61,12 @@ export const useTables = () => {
       
       setTables(fetchedTables)
     } catch (err) {
-      const error = err as Error | { response?: { data?: { error?: string } } }
+      const error = err as AxiosError<ErrorResponse>
       console.error('Error fetching tables:', error)
       
-      const errorMessage = 'response' in error && error.response?.data?.error 
-      ? error.response.data.error 
-      : (error instanceof Error ? error.message : 'Failed to load tables')
+      const errorMessage = error.response?.data?.message 
+        ? error.response.data.message 
+        : (error.message || 'Failed to load tables')
       
       setError(errorMessage)
       toast({
@@ -61,6 +74,13 @@ export const useTables = () => {
         title: "Error",
         description: errorMessage
       })
+
+      // If token is invalid or expired, redirect to login
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token')
+        localStorage.removeItem('data')
+        window.location.href = '/auth'
+      }
     } finally {
       setIsLoading(false)
     }

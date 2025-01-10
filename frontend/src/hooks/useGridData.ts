@@ -19,6 +19,12 @@ interface ApiResponse {
   };
 }
 
+interface ErrorResponse {
+  success: boolean;
+  error: string;
+  details?: string;
+}
+
 interface ColumnPermission {
   column_name: string;
   column_status: "editable" | "non-editable";
@@ -37,12 +43,8 @@ export const useGridData = ({
   const [error, setError] = useState<string | null>(null);
   const [rowData, setRowData] = useState<RowData[]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
-  const [columnConfigs, setColumnConfigs] = useState<
-    Record<string, ColumnConfig>
-  >({});
-  const [columnPermissions, setColumnPermissions] = useState<
-    Record<string, boolean>
-  >({});
+  const [columnConfigs, setColumnConfigs] = useState<Record<string, ColumnConfig>>({});
+  const [columnPermissions, setColumnPermissions] = useState<Record<string, boolean>>({});
   const [pagination, setPagination] = useState({
     total: 0,
     totalPages: 0,
@@ -53,9 +55,24 @@ export const useGridData = ({
   const { toast } = useToast();
   const abortControllerRef = useRef<AbortController | null>(null);
 
+  const handleAuthError = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('data');
+    window.location.href = '/auth';
+  }, []);
+
+  const getAuthHeaders = useCallback(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('Authentication token not found');
+    }
+    return {
+      'Authorization': `Bearer ${token}`
+    };
+  }, []);
+
   const getColumnEditType = useCallback(
     (header: string): EditType | undefined => {
-      // First check if the column is editable based on permissions
       if (!columnPermissions[header]) {
         return EditType.TEXT;
       }
@@ -125,24 +142,24 @@ export const useGridData = ({
         {
           table_name: tableName,
           action: "get",
+        },
+        {
+          headers: getAuthHeaders()
         }
       );
 
       if (response.data.success) {
         const permissions: Record<string, boolean> = {};
-        // Initialize all columns as non-editable
         if (rowData.length > 0) {
           Object.keys(rowData[0]).forEach((col) => {
             permissions[col] = false;
           });
         }
-        // Update only the editable columns from the response
         response.data.column_list.forEach((col) => {
           permissions[col.column_name] = col.column_status === "editable";
         });
         setColumnPermissions(permissions);
 
-        // Update column configs with the new permissions
         setColumnConfigs((prev) => {
           const newConfigs = { ...prev };
           Object.keys(newConfigs).forEach((key) => {
@@ -155,18 +172,21 @@ export const useGridData = ({
         });
       }
     } catch (error) {
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : "Failed to fetch column permissions";
+      const err = error as AxiosError<ErrorResponse>;
+      if (err.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+      
+      const errorMessage = err.response?.data?.error || 'Failed to fetch column permissions';
       console.error("Error fetching column permissions:", errorMessage);
       toast({
         title: "Error",
-        description: "Failed to fetch column permissions",
+        description: errorMessage,
         variant: "destructive",
       });
     }
-  }, [tableName, toast, rowData]);
+  }, [tableName, toast, rowData, getAuthHeaders, handleAuthError]);
 
   const fetchData = useCallback(
     async (page: number, pageSize: number) => {
@@ -175,12 +195,10 @@ export const useGridData = ({
         return;
       }
 
-      // Cancel previous request if any
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      // Create new abort controller
       abortControllerRef.current = new AbortController();
 
       try {
@@ -191,6 +209,7 @@ export const useGridData = ({
               page,
               pageSize,
             },
+            headers: getAuthHeaders(),
             signal: abortControllerRef.current.signal,
           }
         );
@@ -199,28 +218,97 @@ export const useGridData = ({
           setRowData(response.data.data);
           setPagination((prev) => ({
             ...prev,
-            total: response.data.pagination.total,
-            totalPages: response.data.pagination.totalPages,
-            currentPage: page,
-            pageSize,
+            ...response.data.pagination,
           }));
+
           if (response.data.data.length > 0) {
-            setColumnConfigs(createColumnConfigs(response.data.data[0]));
             setHeaders(Object.keys(response.data.data[0]));
+            setColumnConfigs(createColumnConfigs(response.data.data[0]));
+            await fetchColumnPermissions();
           }
+          setError(null);
+        } else {
+          throw new Error('Failed to fetch table data');
         }
       } catch (error) {
         if (error instanceof CanceledError) {
           return;
         }
-        console.error("Error fetching data:", error);
-        throw error;
+
+        const err = error as AxiosError<ErrorResponse>;
+        if (err.response?.status === 401) {
+          handleAuthError();
+          return;
+        }
+
+        const errorMessage = err.response?.data?.error || 'Failed to fetch table data';
+        console.error("Error fetching table data:", errorMessage);
+        setError(errorMessage);
+        toast({
+          title: "Error",
+          description: errorMessage,
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
       }
     },
-    [tableName, createColumnConfigs]
+    [tableName, createColumnConfigs, fetchColumnPermissions, toast, getAuthHeaders, handleAuthError]
   );
 
-  // Initial data load when table name changes
+  const handlePageSizeChange = useCallback(async (newPageSize: number) => {
+    setIsLoading(true);
+    
+    try {
+      setPagination((prev) => ({
+        ...prev,
+        pageSize: newPageSize,
+        currentPage: 1,
+      }));
+
+      const response = await axios.get<ApiResponse>(
+        `http://localhost:8080/tableData/${tableName}`,
+        {
+          params: {
+            page: 1,
+            pageSize: newPageSize,
+          },
+          headers: getAuthHeaders(),
+        }
+      );
+
+      if (response.data.success) {
+        setRowData(response.data.data);
+        setPagination((prev) => ({
+          ...prev,
+          ...response.data.pagination,
+          pageSize: newPageSize,
+          currentPage: 1,
+        }));
+        setError(null);
+      } else {
+        throw new Error('Failed to fetch table data');
+      }
+    } catch (error) {
+      const err = error as AxiosError<ErrorResponse>;
+      if (err.response?.status === 401) {
+        handleAuthError();
+        return;
+      }
+
+      const errorMessage = err.response?.data?.error || 'Failed to fetch table data';
+      console.error("Error fetching table data:", errorMessage);
+      setError(errorMessage);
+      toast({
+        title: "Error",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tableName, toast, getAuthHeaders, handleAuthError]);
+
   useEffect(() => {
     if (!tableName) return;
 
@@ -230,7 +318,6 @@ export const useGridData = ({
       setIsLoading(true);
       setError(null);
 
-      // Reset pagination when table changes
       setPagination((prev) => ({
         ...prev,
         currentPage: 1,
@@ -268,42 +355,10 @@ export const useGridData = ({
     };
   }, [tableName]);
 
-  // Handle pagination and page size changes
-  useEffect(() => {
-    if (!tableName) return;
-
-    const loadPageData = async () => {
-      setIsLoading(true);
-
-      try {
-        await fetchData(pagination.currentPage, pagination.pageSize);
-      } catch (error) {
-        const errorMessage =
-          error instanceof Error ? error.message : "Failed to load page data";
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: errorMessage,
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadPageData();
-  }, [tableName, pagination.currentPage, pagination.pageSize, fetchData, toast]);
-
   const handlePageChange = useCallback((page: number) => {
     setPagination((prev) => ({ ...prev, currentPage: page }));
-  }, []);
-
-  const handlePageSizeChange = useCallback((newPageSize: number) => {
-    setPagination((prev) => ({
-      ...prev,
-      pageSize: newPageSize,
-      currentPage: 1, // Reset to first page when changing page size
-    }));
-  }, []);
+    fetchData(page, pagination.pageSize);
+  }, [pagination.pageSize, fetchData]);
 
   const refreshData = useCallback(() => {
     fetchData(pagination.currentPage, pagination.pageSize);
