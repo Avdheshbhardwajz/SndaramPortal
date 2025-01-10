@@ -2,14 +2,7 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 
 exports.isActive = async (req, res) => {
     try {
-        const { user_id } = req.body;
-
-        if (!user_id) {
-            return res.status(400).json({
-                success: false,
-                message: 'Required field: user_id is missing.',
-            });
-        }
+        const user_id = req.user.user_id;  // Get user_id from JWT token
 
         await client_update.query('BEGIN');
 
@@ -25,39 +18,39 @@ exports.isActive = async (req, res) => {
             await client_update.query('ROLLBACK');
             return res.status(404).json({
                 success: false,
-                message: 'No user found with the given user_id.',
+                message: 'User not found.',
             });
         }
 
-        // Toggle the active status to its opposite
-        const newActiveStatus = !currentStatus.rows[0].active;
+        // Toggle the active status
+        const newStatus = !currentStatus.rows[0].active;
 
-        // Update with the new status
+        // Update the active status
         const updateQuery = `
             UPDATE app.users
-            SET active = $1, updated_at = NOW()
+            SET 
+                active = $1,
+                updated_at = NOW()
             WHERE user_id = $2
-            RETURNING *;
+            RETURNING user_id, active;
         `;
-        const result = await client_update.query(updateQuery, [newActiveStatus, user_id]);
 
+        const result = await client_update.query(updateQuery, [newStatus, user_id]);
         await client_update.query('COMMIT');
 
         return res.status(200).json({
             success: true,
-            message: `User ${newActiveStatus ? 'enabled' : 'disabled'} successfully.`,
-            data: {
-                isActive: newActiveStatus
-            }
+            message: `User ${newStatus ? 'activated' : 'deactivated'} successfully`,
+            data: result.rows[0]
         });
+
     } catch (error) {
         await client_update.query('ROLLBACK');
-        console.error('Error:', error);
-
+        console.error('Error toggling user status:', error);
         return res.status(500).json({
             success: false,
-            message: 'An error occurred while processing the request.',
-            error: error.message,
+            message: 'An error occurred while toggling user status',
+            error: error.message
         });
     }
 };

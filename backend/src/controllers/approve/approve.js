@@ -1,137 +1,94 @@
-// const { client_update } = require('../../configuration/database/databaseUpdate.js');
-
-// exports.approve = async (req, res) => {
-//     const { request_id, comments, checker } = req.body;
-
-//     if (!request_id || !checker) {
-//         return res.status(400).json({
-//             success: false,
-//             message: '"request_id" and "checker" are required fields.',
-//         });
-//     }
-
-//     try {
-//         // Start transaction
-//         await client_update.query('BEGIN');
-
-//         // Update query
-//         const updateQuery = `
-//             UPDATE app.change_tracker
-//             SET 
-//                 status = $1,
-//                 comments = $2,
-//                 updated_at = NOW(),
-//                 checker = $3
-//             WHERE request_id = $4
-//             RETURNING *;
-//         `;
-
-//         const values = ['approved', comments || null, checker, request_id];
-
-//         const appSchemaResult = await client_update.query(updateQuery, values);
-
-//         if (appSchemaResult.rowCount === 0) {
-//             throw new Error('No record found with the given request_id.');
-//         }
-
-//         // Commit transaction
-//         await client_update.query('COMMIT');
-
-//         return res.status(200).json({
-//             success: true,
-//             message: 'Change request approved successfully',
-//             trackerData: appSchemaResult.rows[0],
-//         });
-//     } catch (error) {
-//         await client_update.query('ROLLBACK'); // Rollback transaction on error
-//         console.error('Error:', error);
-//         return res.status(500).json({
-//             success: false,
-//             message: 'An error occurred while processing the request',
-//             error: error.message,
-//         });
-//     }
-// };
-
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.approve = async (req, res) => {
-    const { request_id, comments, checker } = req.body;
+    const { request_id, comments } = req.body;
+    const checker = req.user.user_id;  // Get checker ID from JWT token
 
-    if (!request_id || !checker) {
+    if (!request_id) {
         return res.status(400).json({
             success: false,
-            message: '"request_id" and "checker" are required fields.',
+            message: 'request_id is required.',
+        });
+    }
+
+    // Validate comments length according to schema
+    if (comments && comments.length > 1000) {
+        return res.status(400).json({
+            success: false,
+            message: 'Comments cannot exceed 1000 characters'
         });
     }
 
     try {
         await client_update.query('BEGIN');
 
-        const selectQuery = `
-            SELECT table_name, row_id, new_data
+        // First verify the request exists and is pending
+        const verifyQuery = `
+            SELECT table_name, row_id, new_data, status
             FROM app.change_tracker
             WHERE request_id = $1;
         `;
-        const selectResult = await client_update.query(selectQuery, [request_id]);
+        const verifyResult = await client_update.query(verifyQuery, [request_id]);
 
-        if (selectResult.rowCount === 0) {
+        if (verifyResult.rowCount === 0) {
             throw new Error('No record found with the given request_id.');
         }
 
-        const { table_name, row_id, new_data } = selectResult.rows[0];
+        const { table_name, row_id, new_data, status } = verifyResult.rows[0];
 
-        if (!table_name || !row_id || !new_data) {
-            throw new Error('Invalid data in change_tracker: table_name, row_id, or new_data is missing.');
+        if (status !== 'pending') {
+            throw new Error('This request has already been processed.');
         }
 
-
-        const updates = Object.entries(new_data);
-
-        const updateColumns = updates.map(([column, value], index) => `${column} = $${index + 1}`).join(', ');
-        const updateValues = updates.map(([, value]) => value);
-        updateValues.push(row_id);
-
-        const dynamicUpdateQuery = `
-            UPDATE app.${table_name}
-            SET ${updateColumns}
-            WHERE row_id = $${updates.length + 1};
-        `;
-
-        await client_update.query(dynamicUpdateQuery, updateValues);
-
+        // Update the change_tracker table
         const updateTrackerQuery = `
             UPDATE app.change_tracker
             SET 
-                status = $1,
-                comments = $2,
-                updated_at = NOW(),
-                checker = $3
-            WHERE request_id = $4
+                status = 'approved',
+                comments = $1,
+                updated_at = CURRENT_TIMESTAMP,
+                checker = $2
+            WHERE request_id = $3
             RETURNING *;
         `;
 
-        const trackerValues = ['approved', comments || null, checker, request_id];
-        const trackerResult = await client_update.query(updateTrackerQuery, trackerValues);
+        const trackerResult = await client_update.query(updateTrackerQuery, [
+            comments || null,
+            checker,
+            request_id
+        ]);
 
-        if (trackerResult.rowCount === 0) {
-            throw new Error('Failed to update change_tracker with the given request_id.');
+        // Update the target table with new data
+        if (new_data && row_id) {
+            const parsedData = typeof new_data === 'string' ? JSON.parse(new_data) : new_data;
+            const columns = Object.keys(parsedData);
+            const values = Object.values(parsedData);
+            
+            const setClause = columns.map((col, idx) => `${col} = $${idx + 2}`).join(', ');
+            const updateTableQuery = `
+                UPDATE ${table_name}
+                SET ${setClause}
+                WHERE row_id = $1;
+            `;
+
+            await client_update.query(updateTableQuery, [row_id, ...values]);
         }
 
         await client_update.query('COMMIT');
 
         return res.status(200).json({
             success: true,
-            message: 'Change request approved and applied successfully',
-            trackerData: trackerResult.rows[0],
+            message: 'Change request approved successfully',
+            data: trackerResult.rows[0]
         });
+
     } catch (error) {
         await client_update.query('ROLLBACK');
-        console.error('Error:', error);
+        console.error('Error during approval:', error);
         return res.status(500).json({
             success: false,
-            message: 'An error occurred while processing the request',
-            error: error.message,
+            message: 'An error occurred while processing the approval',
+            error: error.message
         });
     }
 };

@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const { verifyToken, authorize } = require('../middleware/auth.js');
 
 // Import controllers
 const {
@@ -56,68 +57,67 @@ const { sendOTP } = require('../controllers/sendOTP/sendOTP.js');
 const { verifyOTP } = require('../controllers/verifyOTP/verifyOTP.js');
 
 
-// Authentication routes
 
-router.post("/signup", createUser);
+// Public routes
+
+router.post("/signup",verifyToken, authorize('admin'), createUser);
 
 //opt auth endpoints 
 router.post('/send-otp', sendOTP);
 router.post('/verify-otp', verifyOTP);
 
-// User management routes
-router.get("/users", getAllUsers);
-router.get("/users/:id", getUserById);
-router.put("/users/:id", updateUser);
-router.post('/isactive', isActive);
+// User management routes - Admin only
+router.get("/users", verifyToken,  getAllUsers);
+router.get("/users/:id", verifyToken,  getUserById);
+router.put("/users/:id", verifyToken, authorize('admin'), updateUser);
+router.post('/isactive', verifyToken, authorize('admin'), isActive);
 
-// Data routes
-router.get("/fetchchangetrackerdata", fetchChangeTrackerData);
-router.post("/requestdata", requestData);
-router.get("/table", table);
-router.get("/tableData/:name", tableData);
+// Data routes - Authenticated users
+router.get("/fetchchangetrackerdata", verifyToken, fetchChangeTrackerData);
+router.post("/requestdata", verifyToken, requestData);
+router.get("/table", verifyToken, table);
+router.get("/tableData/:name", verifyToken, tableData);
 
-// Request management routes
-router.post("/approve", approve);
-router.post("/reject", reject);
+// Request management routes - Checker role
+router.post("/approve", verifyToken, authorize('checker'), approve);
+router.post("/reject", verifyToken, authorize('checker'), reject);
 
 //column configuration routes
-router.post("/columnPermission", ColumnPermission);
-router.post("/fetchcolumn", fetchColumn);
+router.post("/columnPermission", verifyToken,  ColumnPermission);
+router.post("/fetchcolumn", verifyToken, fetchColumn);
 
 //dropdown configuratuon routes
-router.post("/fetchColumnDropDown", fetchColumnDropDown);
-router.post("/updateColumnDropDown", updateColumnDropDown);
-router.post("/fetchColumnStatus", fetchColumnStatus);
-router.post("/fetchDropdownOptions", fetchDropdownOptions);
+router.post("/fetchColumnDropDown", verifyToken, fetchColumnDropDown);
+router.post("/updateColumnDropDown", verifyToken,  updateColumnDropDown);
+router.post("/fetchColumnStatus", verifyToken,  fetchColumnStatus);
+router.post("/fetchDropdownOptions", verifyToken, fetchDropdownOptions);
 
 // group configuration routes
-router.post("/addgroup", addGroup); //create group
-router.post("/addtable", addTable); // add table inside of a group
-router.get("/getgrouplist", getGroupList); //show all group and table list respectively
-router.post("/removegroup", removeGroup);
-router.post("/removetable", removeTable);
+router.post("/addgroup", verifyToken, authorize('admin'), addGroup); //create group
+router.post("/addtable", verifyToken, authorize('admin'), addTable); // add table inside of a group
+router.get("/getgrouplist", verifyToken,  getGroupList); //show all group and table list respectively
+router.post("/removegroup", verifyToken, authorize('admin'), removeGroup);
+router.post("/removetable", verifyToken, authorize('admin'), removeTable);
 
 //checker logs 
-router.post('/getallcheckerrequest', getAllCheckerRequest);
-
-//endpoint to manage bulk requst 
-router.post('/approveall', allApprove);
-router.post('/rejectall', allReject);
+router.post('/getallcheckerrequest', verifyToken, authorize('checker', 'admin'), getAllCheckerRequest);
+router.post('/approveall', verifyToken, authorize('checker'), allApprove);
+router.post('/rejectall', verifyToken, authorize('checker'), allReject);
 
 //endpoint to handle add of rows 
-router.post('/addrow', addRow);
-router.post('/fetchrowrequest', fetchRowRequest);
-router.post('/acceptrow', acceptRow);
-router.post('/rejectrow', rejectRow);
-router.post('/rejectallrow', rejectAllRow);
-router.post('/acceptallrow', acceptAllRow);
+router.post('/addrow', verifyToken, addRow);
+router.get('/fetchrowrequest', verifyToken, fetchRowRequest);
+router.post('/acceptrow', verifyToken, acceptRow);
+router.post('/rejectrow', verifyToken, rejectRow);
+router.post('/rejectallrow', verifyToken,  rejectAllRow);
+router.post('/acceptallrow', verifyToken, acceptAllRow);
 
 // Notification routes
-router.post("/maker-notification", getMakerNotification);
-router.get("/checker-notification", getCheckerNotification);
-router.get("/admin-notification", getAdminNotification);
+router.get("/maker-notification", verifyToken, authorize('maker'), getMakerNotification);
+router.get("/checker-notification", verifyToken, authorize('checker'), getCheckerNotification);
+router.get("/admin-notification", verifyToken, authorize('admin'), getAdminNotification);
 
 // Cell highlighting endpoint
-router.post('/highlight-cells', highlightCells);
+router.post('/highlight-cells', verifyToken, highlightCells);
 
 module.exports = router;

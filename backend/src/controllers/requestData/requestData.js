@@ -3,30 +3,42 @@ const { v4: uuidv4 } = require('uuid');
 
 exports.requestData = async (req, res) => {
     const {
-        request_id,
         table_name,
         row_id,
         old_values,
         new_values,
-        status,
-        maker_id,
-        checker_id,
-        created_at,
-        updated_at,
         comments,
         table_id
     } = req.body;
 
-    if (!table_name || !maker_id) {
+    const maker = req.user.user_id;  // Get maker ID from JWT token
+
+    if (!table_name) {
         return res.status(400).json({
             success: false,
-            message: 'table_name and maker are required fields',
+            message: 'table_name is required',
         });
     }
 
     try {
         if (!client_update || client_update.ended) {
             throw new Error('Database client is not connected');
+        }
+
+        // Validate the length of comments according to schema
+        if (comments && comments.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: 'Comments cannot exceed 1000 characters'
+            });
+        }
+
+        // Validate table_name length according to schema
+        if (table_name.length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: 'Table name cannot exceed 100 characters'
+            });
         }
 
         const insertQuery = `
@@ -38,41 +50,42 @@ exports.requestData = async (req, res) => {
                 new_data,
                 status,
                 maker,
-                checker,
                 created_at,
                 updated_at,
                 comments,
                 table_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW(), $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $8, $9)
             RETURNING *;
         `;
 
+        const request_id = uuidv4();
         const values = [
-            uuidv4(),
+            request_id,
             table_name,
-            row_id,
-            JSON.stringify(old_values),
-            JSON.stringify(new_values),
+            row_id ? String(row_id) : null,  // Ensure row_id is stored as varchar(50)
+            old_values ? JSON.stringify(old_values) : null,
+            new_values ? JSON.stringify(new_values) : null,
             'pending',
-            maker_id,
-            checker_id || null,
-            comments || '',
-            table_id || table_name // Use table_id if provided, otherwise use table_name
+            maker,
+            comments || null,
+            table_id ? String(table_id) : null  // Ensure table_id is stored as varchar(50)
         ];
 
         const result = await client_update.query(insertQuery, values);
 
-        res.status(200).json({
+        return res.status(201).json({
             success: true,
-            message: 'Data inserted successfully',
-            data: result.rows[0],
+            message: 'Change request created successfully',
+            data: result.rows[0]
         });
+
     } catch (error) {
-        console.error('Error in requestData:', error);
-        res.status(500).json({
+        console.error('Error creating change request:', error);
+        return res.status(500).json({
             success: false,
-            message: error.message || 'Internal server error',
+            message: 'An error occurred while creating the change request',
+            error: error.message
         });
     }
 };
