@@ -48,13 +48,16 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div className="flex flex-col h-screen font-poppins bg-gray-100">
-      <Header 
-        sidebarOpen={sidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        handleLogout={handleLogout}
-      />
-
+    <div className="min-h-screen">
+      <div className="border-b">
+        <div className="flex h-16 items-center px-4">
+          <Header 
+            sidebarOpen={sidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            handleLogout={handleLogout}
+          />
+        </div>
+      </div>
       <div className="flex flex-1 overflow-hidden">
         <Sidebar 
           sidebarOpen={sidebarOpen}
