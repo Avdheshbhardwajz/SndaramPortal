@@ -105,7 +105,7 @@ router.post('/approveall', verifyToken, authorize('checker'), allApprove);
 router.post('/rejectall', verifyToken, authorize('checker'), allReject);
 
 //endpoint to handle add of rows 
-router.post('/addrow', verifyToken, addRow);
+router.post('/addrow', verifyToken, authorize('maker'), addRow);
 router.get('/fetchrowrequest', verifyToken, fetchRowRequest);
 router.post('/acceptrow', verifyToken, acceptRow);
 router.post('/rejectrow', verifyToken, rejectRow);
