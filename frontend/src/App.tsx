@@ -4,6 +4,7 @@ import Auth from './pages/Auth';
 import Admin from './pages/Admin';
 import DashboardLayout from './pages/DashboardLayout';
 import Checker from './pages/Checker';
+import { Toaster } from "@/components/ui/toaster";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,48 +27,51 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRole }
 
 const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        {/* Public Auth Route */}
-        <Route path="/login" element={<Auth />} />
+    <div>
+      <Router>
+        <Routes>
+          {/* Public Auth Route */}
+          <Route path="/login" element={<Auth />} />
 
-        {/* Admin Route */}
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedRole="admin">
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
+          {/* Admin Route */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute allowedRole="admin">
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Maker Dashboard Route */}
-        <Route
-          path="/dashboard/*"
-          element={
-            <ProtectedRoute allowedRole="maker">
-              <DashboardLayout />
-            </ProtectedRoute>
-          }
-        />
+          {/* Maker Dashboard Route */}
+          <Route
+            path="/dashboard/*"
+            element={
+              <ProtectedRoute allowedRole="maker">
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Checker Dashboard Route */}
-        <Route
-          path="/checker/*"
-          element={
-            <ProtectedRoute allowedRole="checker">
-              <Checker />
-            </ProtectedRoute>
-          }
-        />
+          {/* Checker Dashboard Route */}
+          <Route
+            path="/checker/*"
+            element={
+              <ProtectedRoute allowedRole="checker">
+                <Checker />
+              </ProtectedRoute>
+            }
+          />
 
-        {/* Default Route */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Default Route */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
 
-        {/* Catch all other routes */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Router>
+          {/* Catch all other routes */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+      <Toaster />
+    </div>
   );
 };
 
