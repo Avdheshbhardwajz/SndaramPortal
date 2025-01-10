@@ -11,9 +11,15 @@ interface UserActiveResponse {
 }
 
 interface CellHighlight {
-  table_name: string;
   row_id: string;
   changed_fields: string[];
+}
+
+interface HighlightResponse {
+  success: boolean;
+  data: CellHighlight[];
+  message?: string;
+  error?: string;
 }
 
 const API_BASE_URL = "http://localhost:8080";
@@ -95,20 +101,26 @@ export const toggleUserActive = async (userId: string): Promise<{ success: boole
   }
 };
 
-export const getHighlightedCells = async (userId: string, tableName: string): Promise<{ success: boolean; data: CellHighlight[] }> => {
+export const getHighlightedCells = async (tableName: string): Promise<HighlightResponse> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/highlight-cells`, {
-      userId,
-      tableName
-    }, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await axios.post<HighlightResponse>(
+      `${API_BASE_URL}/highlight-cells`,
+      { tableName },
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       }
-    });
+    );
 
     return response.data;
   } catch (error) {
-    const axiosError = error as AxiosError<ErrorResponse>;
-    throw new Error(axiosError.response?.data?.message || 'Failed to fetch highlighted cells');
+    console.error('Error in getHighlightedCells:', error);
+    throw error;
   }
 };

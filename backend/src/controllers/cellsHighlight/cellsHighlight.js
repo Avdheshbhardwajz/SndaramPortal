@@ -1,12 +1,13 @@
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.highlightCells = async (req, res) => {
-    const { userId, tableName } = req.body;
+    const { tableName } = req.body;
+    const userId = req.user.user_id; // Get user ID from JWT token
 
-    if (!userId || !tableName) {
+    if (!tableName) {
         return res.status(400).json({
             success: false,
-            message: 'Both User ID and Table Name are required'
+            message: 'Table Name is required'
         });
     }
 
@@ -17,7 +18,7 @@ exports.highlightCells = async (req, res) => {
             FROM app.change_tracker
             WHERE maker = $1 
             AND status = 'pending'
-            AND table_id = $2;
+            AND table_name = $2;
         `;
 
         const result = await client_update.query(query, [userId, tableName]);
@@ -33,7 +34,7 @@ exports.highlightCells = async (req, res) => {
 
             if (!changesMap[rowId]) {
                 changesMap[rowId] = {
-                    table_id: row.table_id,
+                    table_name: row.table_name,
                     row_id: rowId,
                     changed_fields: new Set()
                 };
@@ -53,23 +54,17 @@ exports.highlightCells = async (req, res) => {
             changed_fields: Array.from(change.changed_fields)
         }));
 
-        // Log for debugging
-        console.log('Highlight request:', {
-            userId,
-            tableName,
-            changesFound: changes.length
-        });
-
         return res.status(200).json({
             success: true,
             data: changes
         });
 
     } catch (error) {
-        console.error('Error in highlightCells:', error);
+        console.error('Error fetching highlighted cells:', error);
         return res.status(500).json({
             success: false,
-            message: 'Internal server error'
+            message: 'Failed to fetch highlighted cells',
+            error: error.message
         });
     }
 };

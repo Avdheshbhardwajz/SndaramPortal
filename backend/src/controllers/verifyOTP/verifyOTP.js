@@ -91,6 +91,13 @@ exports.verifyOTP = async (req, res) => {
                     success: true,
                     message: 'OTP verified successfully.',
                     token: token,
+                    data: {
+                       
+                        email: user.email,
+                        role: user.role,
+                        first_name: user.first_name,
+                        last_name: user.last_name
+                    }
                     
                 });
             } else {

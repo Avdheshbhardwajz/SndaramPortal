@@ -118,6 +118,6 @@ router.get("/checker-notification", verifyToken, authorize('checker'), getChecke
 router.get("/admin-notification", verifyToken, authorize('admin'), getAdminNotification);
 
 // Cell highlighting endpoint
-router.post('/highlight-cells', verifyToken, highlightCells);
+router.post('/highlight-cells', verifyToken,authorize('maker'), highlightCells);
 
 module.exports = router;

@@ -98,13 +98,14 @@ export const GridTable = memo(
     }, [tableName, toast]);
 
     const fetchHighlightedCells = useCallback(async () => {
+      if (!tableName) return;
+      
       try {
-        const userId = JSON.parse(localStorage.getItem("userData") || "{}").user_id;
-        if (!userId) return;
+        console.log('Fetching highlighted cells for table:', tableName);
+        const response = await getHighlightedCells(tableName);
         
-        const response = await getHighlightedCells(userId, tableName);
         if (response.success) {
-          // Create a map of row_id to changed_fields
+          console.log('Highlighted cells response:', response.data);
           const highlightedCellsMap: Record<string, string[]> = {};
           response.data.forEach((item) => {
             highlightedCellsMap[item.row_id] = item.changed_fields;
@@ -119,8 +120,16 @@ export const GridTable = memo(
     useEffect(() => {
       if (tableName) {
         fetchHighlightedCells();
+        const intervalId = setInterval(fetchHighlightedCells, 30000);
+        return () => clearInterval(intervalId);
       }
     }, [tableName, fetchHighlightedCells]);
+
+    useEffect(() => {
+      if (rowData) {
+        fetchHighlightedCells();
+      }
+    }, [rowData, fetchHighlightedCells]);
 
     const handleEditClick = useCallback(
       (row: RowData) => {
@@ -192,7 +201,7 @@ export const GridTable = memo(
           return cleaned;
         };
 
-        // Get primary key value using tablename_sk
+        // Get primary key value using tableName_sk
         const primaryKeyColumn = `${tableName}_sk`;
         const rowIdentifier = selectedRow[primaryKeyColumn];
 
@@ -268,12 +277,32 @@ export const GridTable = memo(
             filter: true,
             editable: false,
             cellStyle: (params: CellClassParams): CellStyle => {
-              const rowId = params.data?.row_id;
-              const rowIdString = rowId != null ? String(rowId) : undefined;
+              if (!params.data) return {};
+
+              // Get the row ID using tableName_sk
+              const currentRowId = params.data[`${tableName}_sk`]?.toString();
+              const currentField = params.colDef.field;
               
-              if (rowIdString && highlightedCells[rowIdString]?.includes(field)) {
-                return { backgroundColor: "orange" };
+              console.log('Cell style check:', {
+                currentRowId,
+                currentField,
+                tableName,
+                highlightedCells: highlightedCells[currentRowId]
+              });
+
+              // Check if this cell should be highlighted
+              const shouldHighlight = Object.entries(highlightedCells).some(([rowId, changedFields]) => 
+                rowId === currentRowId && // Match using tableName_sk
+                changedFields.includes(currentField || '') // Match the column
+              );
+
+              if (shouldHighlight) {
+                return {
+                  backgroundColor: '#FFA50033', // Light orange with transparency
+                  border: '1px solid #FFA500'  // Solid orange border
+                };
               }
+
               return {
                 backgroundColor: !columnPermissions[field] ? "#f5f5f5" : "white",
                 cursor: columnPermissions[field] ? "pointer" : "not-allowed",
@@ -281,7 +310,7 @@ export const GridTable = memo(
             },
           })),
       ];
-    }, [columnConfigs, handleEditClick, columnPermissions, highlightedCells]);
+    }, [columnConfigs, handleEditClick, columnPermissions, highlightedCells, tableName]);
 
     if (isLoading) {
       return (
