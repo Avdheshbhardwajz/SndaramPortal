@@ -7,8 +7,7 @@ const {
   getAllUsers,
   getUserById,
   updateUser,
-  deleteUser,
-  signin,
+ 
 } = require("../controllers/users/users.js");
 const {
   fetchChangeTrackerData,
@@ -58,7 +57,7 @@ const { verifyOTP } = require('../controllers/verifyOTP/verifyOTP.js');
 
 
 // Authentication routes
-router.post("/signin", signin);
+
 router.post("/signup", createUser);
 
 //opt auth endpoints 
