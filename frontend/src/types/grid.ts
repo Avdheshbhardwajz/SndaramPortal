@@ -35,9 +35,8 @@ export interface ValidationErrors {
 }
 
 export interface RowData {
-  [key: string]: string | number | boolean | null | undefined;
   id?: string | number;
-  dim_branch_sk?: number;
+  [key: string]: string | number | boolean | null | undefined;
 }
 
 export interface PendingChanges {

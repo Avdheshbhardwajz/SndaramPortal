@@ -7,7 +7,6 @@ exports.requestData = async (req, res) => {
         row_id,
         old_values,
         new_values,
-        comments,
         table_id
     } = req.body;
 
@@ -23,14 +22,6 @@ exports.requestData = async (req, res) => {
     try {
         if (!client_update || client_update.ended) {
             throw new Error('Database client is not connected');
-        }
-
-        // Validate the length of comments according to schema
-        if (comments && comments.length > 1000) {
-            return res.status(400).json({
-                success: false,
-                message: 'Comments cannot exceed 1000 characters'
-            });
         }
 
         // Validate table_name length according to schema
@@ -52,10 +43,9 @@ exports.requestData = async (req, res) => {
                 maker,
                 created_at,
                 updated_at,
-                comments,
                 table_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $8, $9)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $8)
             RETURNING *;
         `;
 
@@ -63,13 +53,12 @@ exports.requestData = async (req, res) => {
         const values = [
             request_id,
             table_name,
-            row_id ? String(row_id) : null,  // Ensure row_id is stored as varchar(50)
+            row_id ? String(row_id) : null,
             old_values ? JSON.stringify(old_values) : null,
             new_values ? JSON.stringify(new_values) : null,
             'pending',
             maker,
-            comments || null,
-            table_id ? String(table_id) : null  // Ensure table_id is stored as varchar(50)
+            table_id ? String(table_id) : null
         ];
 
         const result = await client_update.query(insertQuery, values);

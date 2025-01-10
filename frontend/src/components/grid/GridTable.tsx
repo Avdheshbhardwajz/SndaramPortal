@@ -9,13 +9,12 @@ import { ColDef, ICellRendererParams, CellStyle, CellClassParams } from "ag-grid
 import { Pencil, Plus } from "lucide-react";
 import { useGridData } from "@/hooks/useGridData";
 import { submitRequestData } from "@/services/api";
-import { RequestDataPayload } from "@/types/requestData";
+import { RequestDataPayload, ColumnValue } from "@/types/requestData";
 import { toast } from "@/hooks/use-toast";
 import axios, { AxiosError } from "axios";
 import { RowData } from "@/types/grid";
 import { ColumnConfig } from "@/types/grid";
 import { getHighlightedCells } from "@/services/userApi";
-
 
 interface DropdownOption {
   columnName: string;
@@ -177,30 +176,31 @@ export const GridTable = memo(
 
     const handleEditSave = useCallback(async () => {
       try {
-        if (!selectedRow || !editedData) return;
+        if (!selectedRow || !editedData || !tableName) return;
 
         setIsSaving(true);
         setSaveError(null);
 
-        const userData = JSON.parse(localStorage.getItem("userData") || "{}");
-        
-        const rowId = selectedRow['row_id'] != null ? String(selectedRow['row_id']) : undefined;
+        // Clean up the data before sending
+        const cleanData = (data: Record<string, ColumnValue>) => {
+          const cleaned: Record<string, ColumnValue> = {};
+          Object.entries(data).forEach(([key, value]) => {
+            // Skip row_id field
+            if (key === 'row_id') return;
+            cleaned[key] = value === "" ? null : value;
+          });
+          return cleaned;
+        };
 
-        if (!tableName) {
-          throw new Error('Table name is required');
-        }
+        // Get primary key value using tablename_sk
+        const primaryKeyColumn = `${tableName}_sk`;
+        const rowIdentifier = selectedRow[primaryKeyColumn];
 
         const payload: RequestDataPayload = {
           table_name: tableName,
-          old_values: Object.fromEntries(
-            Object.entries(selectedRow || {}).map(([k, v]) => [k, v ?? null])
-          ),
-          new_values: Object.fromEntries(
-            Object.entries(editedData || {}).map(([k, v]) => [k, v ?? null])
-          ),
-          maker_id: userData.user_id || "",
-          comments: "",
-          row_id: rowId,
+          old_values: cleanData(selectedRow),
+          new_values: cleanData(editedData),
+          row_id: rowIdentifier?.toString(),
           table_id: tableName
         };
 
@@ -209,7 +209,7 @@ export const GridTable = memo(
         if (response.success) {
           toast({
             title: "Success",
-            description: "Changes saved successfully",
+            description: response.message || "Changes submitted for approval",
           });
 
           // Refresh the data and highlights
@@ -218,13 +218,12 @@ export const GridTable = memo(
           fetchHighlightedCells();
         }
       } catch (error) {
-        const err = error as Error;
-        console.error("Error saving changes:", err.message);
-        setSaveError("Failed to save changes. Please try again.");
+        console.error("Error saving changes:", error);
+        setSaveError(error instanceof Error ? error.message : "Failed to save changes. Please try again.");
       } finally {
         setIsSaving(false);
       }
-    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit, fetchHighlightedCells]);
+    }, [refreshData, selectedRow, editedData, tableName, handleCloseEdit, fetchHighlightedCells, toast]);
 
     const handleAddSuccess = useCallback(() => {
       refreshData();

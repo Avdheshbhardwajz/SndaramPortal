@@ -56,9 +56,19 @@ export function EditDialog({
 }: EditDialogProps) {
   if (!selectedRowData || !editedData) return null;
 
+  const handleClose = () => {
+    if (!isSaving) {
+      onClose();
+    }
+  };
+
+  const handleSave = () => {
+    onSave();
+  };
+
   const getDropdownOptionsForColumn = (columnName: string): string[] => {
     const option = dropdownOptions.find(opt => opt.columnName === columnName);
-    return option?.options ?? [];
+    return option?.options?.filter(opt => opt && opt.trim() !== '') ?? [];
   };
 
   const isDropdownColumn = (columnName: string): boolean => {
@@ -67,7 +77,7 @@ export function EditDialog({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[40%] min-w-[450px] bg-white font-poppins h-[80vh] p-0 flex flex-col">
         <DialogHeader className="p-6 pb-2">
           <DialogTitle>Edit Row</DialogTitle>
@@ -135,17 +145,17 @@ export function EditDialog({
           </Alert>
         )}
         <div className="flex justify-end space-x-2 p-6 border-t bg-white">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={handleClose} disabled={isSaving}>
             Cancel
           </Button>
-          <Button onClick={onSave} disabled={isSaving}>
+          <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                Submitting...
               </>
             ) : (
-              "Save Changes"
+              "Submit Changes"
             )}
           </Button>
         </div>

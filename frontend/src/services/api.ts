@@ -1,17 +1,41 @@
 import axios from 'axios';
-import { RequestDataPayload } from '../types/requestData';
+import { RequestDataPayload, RequestDataResponse } from '../types/requestData';
 import { ChangeTrackerResponse, ApproveRejectResponse } from '../types/checkerData';
 
 const API_BASE_URL = 'http://localhost:8080';
 const userData = JSON.parse(localStorage.getItem('userData') || '{}');
 const checkerId = userData.user_id;
 
-export const submitRequestData = async (payload: RequestDataPayload) => {
+export const submitRequestData = async (payload: RequestDataPayload): Promise<RequestDataResponse> => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/requestdata`, payload);
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await axios.post<RequestDataResponse>(
+      `${API_BASE_URL}/requestdata`,
+      payload,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
     return response.data;
   } catch (error) {
-    throw handleApiError(error);
+    if (axios.isAxiosError(error)) {
+      if (error.response?.status === 401) {
+        // Handle unauthorized error
+        localStorage.removeItem('token');
+        window.location.href = '/auth';
+        throw new Error('Authentication failed');
+      }
+      throw new Error(error.response?.data?.error || error.message || 'Failed to submit request');
+    }
+    throw error;
   }
 };
 
