@@ -12,9 +12,12 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRole }) => {
   const token = localStorage.getItem('token');
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  const userData = JSON.parse(localStorage.getItem('userData') || '{}');
   
-  if (!token || user.role !== allowedRole) {
+  if (!token || userData.role?.toLowerCase() !== allowedRole) {
+    // Clear storage if invalid and redirect
+    localStorage.removeItem('token');
+    localStorage.removeItem('userData');
     return <Navigate to="/login" replace />;
   }
 
@@ -69,4 +72,3 @@ const App: React.FC = () => {
 };
 
 export default App;
-

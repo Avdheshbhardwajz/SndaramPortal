@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOtp } from '../hooks/useOTP';
 import { Button } from "@/components/ui/button"
@@ -8,17 +8,41 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle } from 'lucide-react'
 
-// interface User {
-//   user_id: string;
-//   email: string;
-//   role: 'admin' | 'maker' | 'checker';
-//   first_name: string;
-//   last_name: string;
-// }
+type User = {
+  email: string;
+  role: 'admin' | 'maker' | 'checker';
+  first_name: string;
+  last_name: string;
+}
 
 const Auth: React.FC = () => {
   const navigate = useNavigate();
   const { email, otp, isOtpSent, error, setEmail, setOtp, sendOtp, verifyOtp } = useOtp();
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    if (token && userData.role) {
+      // Navigate based on role
+      switch (userData.role.toLowerCase()) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'maker':
+          navigate('/dashboard');
+          break;
+        case 'checker':
+          navigate('/checker');
+          break;
+        default:
+          // Clear invalid data
+          localStorage.removeItem('token');
+          localStorage.removeItem('userData');
+      }
+    }
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,25 +54,33 @@ const Auth: React.FC = () => {
         }
       } else {
         const response = await verifyOtp();
-        if (response?.success && response.token && response.user) {
-          // Store token and user data
+        console.log('OTP Verification Response:', response); // Debug log
+
+        if (response?.success && response.token && response.data) {
+          // Store token
           localStorage.setItem('token', response.token);
-          localStorage.setItem('user', JSON.stringify(response.user));
           
-          // Navigate based on role
-          switch (response.user.role) {
-            case 'admin':
-              navigate('/admin');
-              break;
-            case 'maker':
-              navigate('/dashboard');
-              break;
-            case 'checker':
-              navigate('/checker');
-              break;
-            default:
-              navigate('/login');
+          // Store user data
+          const userData: User = {
+            email: response.data.email,
+            role: response.data.role,
+            first_name: response.data.first_name,
+            last_name: response.data.last_name
+          };
+          localStorage.setItem('userData', JSON.stringify(userData));
+          
+          console.log('Stored user data:', userData); // Debug log
+
+          // Navigate to the path provided by backend
+          if (response.redirectPath) {
+            console.log('Redirecting to:', response.redirectPath);
+            navigate(response.redirectPath);
+          } else {
+            console.error('No redirect path provided');
+            navigate('/login');
           }
+        } else {
+          console.error('Invalid response:', response);
         }
       }
     } catch (err) {

@@ -87,6 +87,22 @@ exports.verifyOTP = async (req, res) => {
                     { expiresIn: '24h' }
                 );
 
+                // Determine redirect path based on role
+                let redirectPath;
+                switch (user.role.toLowerCase()) {
+                  case 'admin':
+                    redirectPath = '/admin';
+                    break;
+                  case 'maker':
+                    redirectPath = '/dashboard';
+                    break;
+                  case 'checker':
+                    redirectPath = '/checker';
+                    break;
+                  default:
+                    redirectPath = '/login';
+                }
+
                 return res.status(200).json({
                     success: true,
                     message: 'OTP verified successfully.',
@@ -97,7 +113,8 @@ exports.verifyOTP = async (req, res) => {
                         role: user.role,
                         first_name: user.first_name,
                         last_name: user.last_name
-                    }
+                    },
+                    redirectPath
                     
                 });
             } else {

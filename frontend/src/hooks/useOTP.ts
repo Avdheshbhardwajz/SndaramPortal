@@ -4,14 +4,14 @@ import axios from 'axios';
 interface OtpResponse {
   success: boolean;
   message: string;
-  token?: string;
-  user?: {
-    user_id: string;
+  token: string;
+  data: {
     email: string;
     role: 'admin' | 'maker' | 'checker';
     first_name: string;
     last_name: string;
   };
+  redirectPath: string;
 }
 
 interface OtpHookReturn {
@@ -40,11 +40,13 @@ export const useOtp = (): OtpHookReturn => {
         setIsOtpSent(true);
         return true;
       } else {
-        setError(response.data.message);
+        setError(response.data.message || 'Failed to send OTP');
         return false;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to send OTP');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to send OTP';
+      console.error('Send OTP Error:', err);
+      setError(errorMessage);
       return false;
     }
   };
@@ -52,19 +54,27 @@ export const useOtp = (): OtpHookReturn => {
   const verifyOtp = async (): Promise<OtpResponse | null> => {
     try {
       setError(null);
+      console.log('Verifying OTP:', { email, otp }); // Debug log
+
       const response = await axios.post<OtpResponse>('http://localhost:8080/verify-otp', {
         email,
-        OTP: otp // Note: Backend expects 'OTP' not 'otp'
+        OTP: otp
       });
+
+      console.log('Verify OTP Response:', response.data); // Debug log
 
       if (response.data.success) {
         return response.data;
       } else {
-        setError(response.data.message);
+        const errorMsg = response.data.message || 'Invalid OTP';
+        console.error('Verification failed:', errorMsg);
+        setError(errorMsg);
         return null;
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to verify OTP');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to verify OTP';
+      console.error('Verify OTP Error:', err);
+      setError(errorMessage);
       return null;
     }
   };
