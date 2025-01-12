@@ -3,6 +3,7 @@ import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { CheckerNotificationDrawer } from "./CheckerNotificationDrawer";
+import {toast} from "@/hooks/use-toast";
 
 interface CheckerNotification {
   table_name: string;
@@ -24,8 +25,23 @@ export function CheckerNotificationIcon() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const response = await fetch("http://localhost:8080/checker-notification");
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch("http://localhost:8080/checker-notification", {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         if (!response.ok) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch notifications",
+            className: "bg-[#003B95] text-white border-none",
+          });
           throw new Error('Failed to fetch notifications');
         }
 

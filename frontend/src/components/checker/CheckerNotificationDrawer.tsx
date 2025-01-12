@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
+import {toast} from "@/hooks/use-toast"; // Import toast
 
 
 interface CheckerNotification {
@@ -37,9 +38,24 @@ export function CheckerNotificationDrawer({ isOpen, onClose }: NotificationDrawe
       setError(null);
       
       try {
-        const response = await fetch("http://localhost:8080/checker-notification");
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch("http://localhost:8080/checker-notification", {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         
         if (!response.ok) {
+          toast({
+            title: "Error",
+            description: "Failed to fetch notifications",
+            className: "bg-[#003B95] text-white border-none",
+          });
           throw new Error('Failed to fetch notifications');
         }
 
@@ -47,6 +63,11 @@ export function CheckerNotificationDrawer({ isOpen, onClose }: NotificationDrawe
         if (result.success) {
           setNotifications(result.data || []);
         } else {
+          toast({
+            title: "Error",
+            description: result.message || "Failed to fetch notifications",
+            className: "bg-[#003B95] text-white border-none",
+          });
           setError(result.message || "Failed to fetch notifications");
         }
       } catch (error) {

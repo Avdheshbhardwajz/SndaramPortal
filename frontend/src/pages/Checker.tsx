@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import logo from "../assets/Logo.png"
 import { useToast } from "@/hooks/use-toast"
-import { fetchChangeTrackerData, approveChange} from '@/services/api'
+import { fetchChangeTrackerData, approveChange, rejectChange, approveAllChanges, rejectAllChanges } from '@/services/api'
 import { CheckerLog } from '@/components/CheckerLog'
 import { TableContent } from '@/components/ui/TableContent'
 import { CheckerNotificationIcon } from '@/components/checker/CheckerNotificationIcon'
@@ -27,11 +27,11 @@ import {
   SidebarProvider,
 } from '@/components/ui/sidebar'
 
-interface ApiResponse<T> {
-  success: boolean
-  message?: string
-  data?: T
-}
+// interface ApiResponse<T> {
+//   success: boolean
+//   message?: string
+//   data?: T
+// }
 
 interface ChangeTrackerData {
   request_id: string
@@ -43,6 +43,7 @@ interface ChangeTrackerData {
   status: 'pending' | 'approved' | 'rejected'
   new_data?: Record<string, unknown>
   old_data?: Record<string, unknown>
+  row_id?: string
 }
 
 interface ColumnChange {
@@ -54,6 +55,7 @@ interface ColumnChange {
 interface Change {
   id: string
   request_id: string
+  row_id: string
   user: string
   dateTime: string
   reason: string
@@ -92,38 +94,25 @@ export default function EnhancedCheckerPage() {
   const handleApproveAllRequests = async () => {
     try {
       setIsLoading(true);
-      const requestIds = pendingChanges.map(change => change.request_id);
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-
-      const response = await fetch('http://localhost:8080/approveall', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          request_ids: requestIds,
-          checker: userData.user_id
-        }),
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
+      const requestIds = pendingChanges.map(change => change.row_id);
+      
+      const response = await approveAllChanges(requestIds);
+      if (response.success) {
         toast({
           title: "Success",
-          description: "All changes have been approved successfully"
+          description: "All changes have been approved successfully",
+          className: "bg-[#003B95] text-white border-none",
         });
         await loadPendingChanges();
         setSelectedChanges({});
-      } else {
-        throw new Error(result.message || 'Failed to approve all changes');
       }
     } catch (error) {
       console.error('Error approving all changes:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to approve all changes"
+        description: error instanceof Error ? error.message : "Failed to approve all changes",
+        className: "bg-[#003B95] text-white border-none",
       });
     } finally {
       setIsLoading(false);
@@ -133,9 +122,19 @@ export default function EnhancedCheckerPage() {
   const loadPendingChanges = async () => {
     try {
       setIsLoading(true)
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      
       const [changesResponse, groupsResponse] = await Promise.all([
         fetchChangeTrackerData(),
-        fetch('http://localhost:8080/getgrouplist').then(res => res.json())
+        fetch('http://localhost:8080/getgrouplist', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }).then(res => res.json())
       ])
       
       if (changesResponse.success && changesResponse.data) {
@@ -154,7 +153,8 @@ export default function EnhancedCheckerPage() {
 
             return {
               id: change.request_id || change.id || '',
-              request_id: change.request_id,
+              request_id: change.request_id || '',
+              row_id: change.row_id || '', // Use the actual row_id from the database
               user: change.maker || 'Unknown User',
               dateTime: new Date(change.created_at).toLocaleString(),
               reason: change.comments || '',
@@ -205,8 +205,9 @@ export default function EnhancedCheckerPage() {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load pending changes"
-      })
+        description: "Failed to load pending changes",
+        className: "bg-[#003B95] text-white border-none",
+      });
     } finally {
       setIsLoading(false)
     }
@@ -220,49 +221,72 @@ export default function EnhancedCheckerPage() {
     setSelectedChanges(prev => ({ ...prev, [changeId]: !prev[changeId] }))
   }
 
-  const handleApproveAll = async (tableName: string) => {
+  const handleApprove = async (row_id: string, request_id: string) => {
     try {
       setIsLoading(true);
-      const selectedIds = Object.entries(selectedChanges)
-        .filter(([, isSelected]) => isSelected)
-        .map(([id]) => id);
-      
-      const itemsToApprove = selectedIds.length > 0 
-        ? pendingChanges.filter(change => selectedIds.includes(change.id))
-        : pendingChanges.filter(change => change.tableName === tableName);
-  
-      const requestIds = itemsToApprove.map(item => item.request_id);
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      
-      const response = await fetch('http://localhost:8080/approveall', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          request_ids: requestIds,
-          checker: userData.user_id 
-        }),
-      });
-
-      const result = await response.json();
-      
-      if (result.success) {
+      const response = await approveChange(row_id, request_id);
+      if (response.success) {
         toast({
           title: "Success",
-          description: "Selected changes approved successfully"
+          description: "Change request approved successfully",
+          variant: "default",
         });
         await loadPendingChanges();
-        setSelectedChanges({});
       } else {
-        throw new Error(result.message || 'Failed to approve changes');
+        toast({
+          title: "Error",
+          description: response.message || "Failed to approve change",
+          variant: "destructive",
+        });
       }
+    } catch (error) {
+      console.error('Error approving change:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve change",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleApproveAll = async () => {
+    try {
+      setIsLoading(true);
+      const selectedChangesList = Object.entries(selectedChanges)
+        .filter(([ , isSelected]) => isSelected)
+        .map(([id]) => {
+          const change = pendingChanges.find(c => c.id === id);
+          return change ? { row_id: change.row_id } : null;
+        })
+        .filter(Boolean) as { row_id: string }[];
+
+      if (selectedChangesList.length === 0) {
+        toast({
+          title: "Warning",
+          description: "Please select changes to approve",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const rowIds = selectedChangesList.map(change => change.row_id);
+
+      await approveAllChanges(rowIds);
+      toast({
+        title: "Success",
+        description: "Selected changes approved successfully",
+        variant: "default",
+      });
+      loadPendingChanges();
+      setSelectedChanges({});
     } catch (error) {
       console.error('Error approving changes:', error);
       toast({
-        variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to approve changes"
+        description: error instanceof Error ? error.message : "Failed to approve changes",
+        variant: "destructive",
       });
     } finally {
       setIsLoading(false);
@@ -284,40 +308,7 @@ export default function EnhancedCheckerPage() {
     }
   };
 
-  const handleApprove = async (changeId: string) => {
-    try {
-      setIsLoading(true)
-      const change = pendingChanges.find(c => c.id === changeId)
-      if (!change) return
-
-      const response: ApiResponse<unknown> = await approveChange(change.request_id)
-      
-      if (response.success) {
-        toast({
-          title: "Success",
-          description: "Change approved successfully"
-        })
-        await loadPendingChanges()
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: response.message || "Failed to approve change"
-        })
-      }
-    } catch (error) {
-      console.error('Error approving change:', error)
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to approve change"
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleReject = (changeId: string) => {
+  const handleReject = async (changeId: string) => {
     setCurrentRejectId(changeId)
     setIsRejectModalOpen(true)
   }
@@ -333,53 +324,62 @@ export default function EnhancedCheckerPage() {
         throw new Error('Rejection reason must not exceed 100 characters');
       }
 
+      // Handle single rejection
+      if (currentRejectId && currentRejectId !== 'bulk') {
+        const change = pendingChanges.find(c => c.id === currentRejectId);
+        if (!change) {
+          throw new Error('Selected change not found');
+        }
+
+        const response = await rejectChange(change.row_id, rejectReason.trim());
+        if (response.success) {
+          toast({
+            title: "Success",
+            description: "Change rejected successfully",
+            className: "bg-[#003B95] text-white border-none",
+          });
+          setIsRejectModalOpen(false);
+          setRejectReason("");
+          setCurrentRejectId(null);
+          await loadPendingChanges();
+          return;
+        }
+      }
+
+      // Handle bulk rejection
       const changesToReject = currentRejectId === 'bulk' 
         ? Object.entries(selectedChanges)
             .filter(([, isSelected]) => isSelected)
             .map(([id]) => pendingChanges.find(change => change.id === id))
             .filter((change): change is Change => change !== undefined)
-        : pendingChanges.filter(change => change.id === currentRejectId);
+        : [];
 
       if (changesToReject.length === 0) {
         throw new Error('No changes selected for rejection');
       }
 
-      const requestIds = changesToReject.map(change => change.request_id);
-      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-      
-      const response = await fetch('http://localhost:8080/rejectall', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          request_ids: requestIds,
-          comments: rejectReason.trim(),
-          checker: userData.user_id
-        }),
-      });
+      const requestIds = changesToReject.map(change => change.row_id);
+      const response = await rejectAllChanges(requestIds, rejectReason.trim());
 
-      const result = await response.json();
-
-      if (result.success) {
+      if (response.success) {
         toast({
           title: "Success",
-          description: "Changes rejected successfully"
+          description: "Changes rejected successfully",
+          className: "bg-[#003B95] text-white border-none",
         });
         setIsRejectModalOpen(false);
         setRejectReason("");
         setCurrentRejectId(null);
         setSelectedChanges({});
         await loadPendingChanges();
-      } else {
-        throw new Error(result.message || 'Failed to reject changes');
       }
     } catch (error) {
       console.error('Error rejecting changes:', error);
       toast({
         variant: "destructive",
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to reject changes"
+        description: error instanceof Error ? error.message : "Failed to reject changes",
+        className: "bg-[#003B95] text-white border-none",
       });
     } finally {
       setIsLoading(false);

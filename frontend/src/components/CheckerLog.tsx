@@ -36,12 +36,18 @@ export function CheckerLog({ checker }: CheckerLogProps) {
         return
       }
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('http://localhost:8080/getallcheckerrequest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ checker: checker }),
+        body: JSON.stringify({})
       })
 
       const result = await response.json()
@@ -152,4 +158,3 @@ export function CheckerLog({ checker }: CheckerLogProps) {
     </Card>
   )
 }
-

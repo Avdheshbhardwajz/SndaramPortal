@@ -1,48 +1,57 @@
 import axios from 'axios';
 import { RequestDataPayload, RequestDataResponse } from '../types/requestData';
-import { ChangeTrackerResponse, ApproveRejectResponse } from '../types/checkerData';
+import { ChangeTrackerResponse } from '../types/checkerData';
+
+interface ChangeTrackerData {
+  table_name: string;
+  old_data: Record<string, unknown>;
+  new_data: Record<string, unknown>;
+  status: 'pending' | 'approved' | 'rejected';
+  maker: string;
+  checker: string | null;
+  created_at: string;
+  updated_at: string;
+  comments: string | null;
+  request_id: string;
+  table_id: string | null;
+  row_id: string;
+}
+
+interface ApproveRejectResponse {
+  success: boolean;
+  message: string;
+  data?: ChangeTrackerData;
+}
 
 const API_BASE_URL = 'http://localhost:8080';
-const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-const checkerId = userData.user_id;
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+};
 
 export const submitRequestData = async (payload: RequestDataPayload): Promise<RequestDataResponse> => {
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
-    const response = await axios.post<RequestDataResponse>(
-      `${API_BASE_URL}/requestdata`,
-      payload,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
-
+    const response = await axios.post(`${API_BASE_URL}/requestdata`, payload, {
+      headers: getAuthHeaders()
+    });
     return response.data;
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      if (error.response?.status === 401) {
-        // Handle unauthorized error
-        localStorage.removeItem('token');
-        window.location.href = '/auth';
-        throw new Error('Authentication failed');
-      }
-      throw new Error(error.response?.data?.error || error.message || 'Failed to submit request');
-    }
-    throw error;
+    throw handleApiError(error);
   }
 };
 
-// Checker API functions
 export const fetchChangeTrackerData = async (): Promise<ChangeTrackerResponse> => {
   try {
-    const response = await axios.get<ChangeTrackerResponse>(`${API_BASE_URL}/fetchchangetrackerdata`);
+    const response = await axios.get<ChangeTrackerResponse>(`${API_BASE_URL}/fetchchangetrackerdata`, {
+      headers: getAuthHeaders()
+    });
     return response.data;
   } catch (error) {
     throw handleApiError(error);
@@ -50,37 +59,42 @@ export const fetchChangeTrackerData = async (): Promise<ChangeTrackerResponse> =
 };
 
 export const approveChange = async (
-  requestId: string,
+  row_id: string,
+  request_id: string,
   comments?: string
 ): Promise<ApproveRejectResponse> => {
   try {
-    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/approve`, {
-      request_id: requestId,
-      comments: comments,
-      checker: checkerId// Get checker ID from localStorage
-    });
-    
-    if (response.data.success) {
-      return response.data;
-    } else {
-      throw new Error(response.data.message || 'Failed to approve change');
-    }
+    const response = await axios.post<ApproveRejectResponse>(
+      `${API_BASE_URL}/approve`,
+      {
+        row_id,
+        request_id,
+        comments
+      },
+      { headers: getAuthHeaders() }
+    );
+    return response.data;
   } catch (error) {
-    throw handleApiError(error);
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
   }
 };
 
 export const rejectChange = async (
-  requestId: string,
+  row_id: string,
   comments: string
 ): Promise<ApproveRejectResponse> => {
   try {
-  
-    const response = await axios.post<ApproveRejectResponse>(`${API_BASE_URL}/reject`, {
-      request_id: requestId,
-      comments: comments,
-      checker: checkerId // Get checker ID from localStorage
-    });
+    const response = await axios.post<ApproveRejectResponse>(
+      `${API_BASE_URL}/reject`,
+      {
+        row_id,
+        comments: comments
+      },
+      { headers: getAuthHeaders() }
+    );
     
     if (response.data.success) {
       return response.data;
@@ -88,7 +102,64 @@ export const rejectChange = async (
       throw new Error(response.data.message || 'Failed to reject change');
     }
   } catch (error) {
-    throw handleApiError(error);
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
+export const approveAllChanges = async (
+  rowIds: string[],
+  comments?: string
+): Promise<ApproveRejectResponse> => {
+  try {
+    const response = await axios.post<ApproveRejectResponse>(
+      `${API_BASE_URL}/approveall`,
+      {
+        row_ids: rowIds,
+        comments
+      },
+      { headers: getAuthHeaders() }
+    );
+    
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to approve changes');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
+  }
+};
+
+export const rejectAllChanges = async (
+  rowIds: string[],
+  comments: string
+): Promise<ApproveRejectResponse> => {
+  try {
+    const response = await axios.post<ApproveRejectResponse>(
+      `${API_BASE_URL}/rejectall`,
+      {
+        row_ids: rowIds,
+        comments: comments
+      },
+      { headers: getAuthHeaders() }
+    );
+    
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to reject changes');
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.data?.message) {
+      throw new Error(error.response.data.message);
+    }
+    throw error;
   }
 };
 

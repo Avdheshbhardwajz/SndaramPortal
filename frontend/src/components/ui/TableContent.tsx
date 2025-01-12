@@ -24,6 +24,7 @@ interface Change {
   oldValues: Record<string, unknown>
   rowData: Record<string, unknown>
   changedColumns: string[]
+  row_id: string
 }
 
 interface TableContentProps {
@@ -33,7 +34,7 @@ interface TableContentProps {
   setSelectedChanges: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
   handleApproveAll: (tableName: string) => void
   handleRejectAll: (tableName: string) => void
-  handleApprove: (changeId: string) => void
+  handleApprove: (rowId: string, requestId: string) => void
   handleReject: (changeId: string) => void
   toggleChangeSelection: (changeId: string) => void
 }
@@ -118,7 +119,7 @@ export function TableContent({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleApprove(change.id)}
+                      onClick={() => handleApprove(change.row_id, change.request_id)}
                       className="hover:bg-green-50 hover:text-green-600"
                     >
                       <Check className="h-4 w-4" />
@@ -201,4 +202,3 @@ export function TableContent({
     </>
   )
 }
-
