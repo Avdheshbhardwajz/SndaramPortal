@@ -2,12 +2,12 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 
 exports.getAllCheckerRequest = async (req, res) => {
     try {
-        const { checker } = req.body;
+        const checker = req.user.user_id; // Get checker_id from middleware
 
         if (!checker) {
             return res.status(400).json({
                 success: false,
-                message: 'Checker value is required.',
+                message: 'Checker ID not found in session.',
             });
         }
 
@@ -16,6 +16,7 @@ exports.getAllCheckerRequest = async (req, res) => {
             SELECT * 
             FROM app.change_tracker 
             WHERE checker = $1
+            ORDER BY created_at DESC
         `;
         const values = [checker];
 
@@ -28,9 +29,7 @@ exports.getAllCheckerRequest = async (req, res) => {
         });
 
     } catch (error) {
-        // Rollback transaction if required
-        await client_update.query('ROLLBACK');
-        console.error('Error:', error);
+        console.error('Error in getAllCheckerRequest:', error);
 
         return res.status(500).json({
             success: false,

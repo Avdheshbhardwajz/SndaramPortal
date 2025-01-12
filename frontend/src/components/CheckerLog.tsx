@@ -7,6 +7,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AlertCircle, CheckCircle2, XCircle } from 'lucide-react'
+import { fetchCheckerActivities } from '@/services/api'
+import { useToast } from '@/hooks/use-toast'
 
 interface CheckerActivity {
   id: string
@@ -27,37 +29,34 @@ interface CheckerLogProps {
 export function CheckerLog({ checker }: CheckerLogProps) {
   const [activities, setActivities] = useState<CheckerActivity[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { toast } = useToast()
 
-  const fetchCheckerActivities = async () => {
-    setIsLoading(true)
+  const loadCheckerActivities = async () => {
     try {
       if (!checker) {
         console.error('Checker ID is missing')
         return
       }
 
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-
-      const response = await fetch('http://localhost:8080/getallcheckerrequest', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({})
-      })
-
-      const result = await response.json()
+      setIsLoading(true)
+      const result = await fetchCheckerActivities();
+      
       if (result.success) {
         setActivities(result.data)
       } else {
-        console.error('Failed to fetch activities:', result.message)
+        toast({
+          title: "Error",
+          description: "Failed to fetch activities",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error('Error fetching checker activities:', error)
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to fetch activities",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false)
     }
@@ -65,22 +64,28 @@ export function CheckerLog({ checker }: CheckerLogProps) {
 
   useEffect(() => {
     if (checker) {
-      fetchCheckerActivities()
+      loadCheckerActivities()
     }
-  }, [checker])
+  }, [checker]) 
 
   const getChanges = (oldData: Record<string, unknown>, newData: Record<string, unknown>) => {
     const changes: string[] = []
     Object.keys(newData).forEach(key => {
+      if (key === 'request_id' || key === 'row_id') return;
+      
       if (String(oldData[key]) !== String(newData[key])) {
-        changes.push(`${key}: ${String(oldData[key])} → ${String(newData[key])}`)
+        changes.push(`${key}: ${String(oldData[key] ?? 'null')} → ${String(newData[key] ?? 'null')}`)
       }
     })
     return changes
   }
 
   if (!checker) {
-    return null
+    return (
+      <div className="flex h-full items-center justify-center p-4">
+        <p className="text-center text-muted-foreground">No checker ID provided</p>
+      </div>
+    )
   }
 
   return (

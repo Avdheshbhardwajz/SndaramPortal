@@ -163,6 +163,47 @@ export const rejectAllChanges = async (
   }
 };
 
+export const fetchCheckerActivities = async (): Promise<{
+  success: boolean;
+  data: Array<{
+    id: string;
+    request_id: string;
+    table_name: string;
+    status: 'approved' | 'rejected';
+    updated_at: string;
+    reason?: string;
+    comments?: string;
+    old_data: Record<string, unknown>;
+    new_data: Record<string, unknown>;
+  }>;
+}> => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await axios.post(
+      `${API_BASE_URL}/getallcheckerrequest`,
+      {},
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || 'Failed to fetch checker activities');
+    }
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
 const handleApiError = (error: unknown): never => {
   if (axios.isAxiosError(error)) {
     const message = error.response?.data?.message || error.message;

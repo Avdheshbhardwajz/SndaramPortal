@@ -606,7 +606,7 @@ export default function EnhancedCheckerPage() {
                   <CardDescription>Review past approvals and rejections</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <CheckerLog checker={JSON.parse(localStorage.getItem('userData') || '{}').user_id || ''} />
+                  <CheckerLog checker={localStorage.getItem('token') || ''} />
                 </CardContent>
               </Card>
             )}
