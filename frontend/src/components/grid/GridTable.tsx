@@ -87,7 +87,7 @@ export const GridTable = memo(
           toast({
             title: "Error",
             description: "Failed to fetch dropdown options",
-            variant: "destructive",
+            className: "bg-[#003087] text-white border-none",
           });
         }
       };
@@ -141,7 +141,7 @@ export const GridTable = memo(
           toast({
             title: "Cannot Edit",
             description: "None of the columns are editable for this table",
-            variant: "destructive",
+            className: "bg-[#003087] text-white border-none",
           });
           return;
         }

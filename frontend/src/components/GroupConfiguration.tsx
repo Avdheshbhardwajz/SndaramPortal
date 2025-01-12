@@ -59,7 +59,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: "Failed to fetch groups",
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsLoading(false);
@@ -71,7 +71,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: "Group name is required",
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
       return;
     }
@@ -85,6 +85,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Success",
         description: "Group created successfully",
+        className: "bg-[#003087] text-white border-none",
       });
     } catch (error: unknown) {
       console.error("Failed to create group:", error);
@@ -93,7 +94,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: message,
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsLoading(false);
@@ -105,7 +106,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: "Please select at least one table",
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
       return;
     }
@@ -125,6 +126,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Success",
         description: "Tables added successfully",
+        className: "bg-[#003087] text-white border-none",
       });
     } catch (error: unknown) {
       console.error("Failed to add tables:", error);
@@ -135,7 +137,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: message,
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsLoading(false);
@@ -156,6 +158,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Success",
         description: "Group deleted successfully",
+        className: "bg-[#003087] text-white border-none",
       });
     } catch (error: unknown) {
       console.error("Failed to delete group:", error);
@@ -164,7 +167,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: message,
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsLoading(false);
@@ -179,6 +182,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Success",
         description: "Table removed from group successfully",
+        className: "bg-[#003087] text-white border-none",
       });
     } catch (error: unknown) {
       console.error("Failed to delete table from group:", error);
@@ -189,7 +193,7 @@ const GroupConfiguration: React.FC<GroupConfigurationProps> = ({
       toast({
         title: "Error",
         description: message,
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsLoading(false);

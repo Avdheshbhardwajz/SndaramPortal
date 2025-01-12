@@ -59,13 +59,14 @@ const Auth: React.FC = () => {
           toast({
             title: "OTP Sent Successfully",
             description: "Please check your email for the OTP",
+            className: "bg-[#003087] text-white border-none",
           });
           setIsEditingEmail(false);
         } else {
           toast({
-            variant: "destructive",
             title: "OTP Send Failed",
             description: error || "Unable to send OTP. Please try again.",
+            className: "bg-[#003087] text-white border-none",
           });
         }
       } else {
@@ -87,6 +88,7 @@ const Auth: React.FC = () => {
           toast({
             title: "Login Successful",
             description: "Welcome to Sundaram Finance",
+            className: "bg-[#003087] text-white border-none",
           })
 
           if (response.redirectPath) {
@@ -98,18 +100,18 @@ const Auth: React.FC = () => {
           }
         } else {
           toast({
-            variant: "destructive",
             title: "Verification Failed",
             description: error || "Invalid OTP. Please try again.",
+            className: "bg-[#003087] text-white border-none",
           })
           console.error('Invalid response:', response);
         }
       }
     } catch (err) {
       toast({
-        variant: "destructive",
         title: "Error",
         description: "An error occurred. Please try again.",
+        className: "bg-[#003087] text-white border-none",
       })
       console.error('Authentication error:', err);
     } finally {

@@ -56,9 +56,9 @@ const UserManagement: React.FC = () => {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to load users";
       toast({
-        variant: "destructive",
         title: "Error",
-        description: errorMessage
+        description: errorMessage,
+        className: "bg-[#003087] text-white border-none",
       });
     }
   }, [toast]);
@@ -103,6 +103,7 @@ const UserManagement: React.FC = () => {
         toast({
           title: "Success",
           description: response.message,
+          className: "bg-[#003087] text-white border-none",
         });
         
         // Update local state based on the response from server
@@ -123,7 +124,7 @@ const UserManagement: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to update user status",
-        variant: "destructive",
+        className: "bg-[#003087] text-white border-none",
       });
       // Refresh users list to ensure UI is in sync with database
       loadUsers();
@@ -161,9 +162,9 @@ const UserManagement: React.FC = () => {
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       toast({
-        variant: "destructive",
         title: "Validation Error",
-        description: "Please fix the errors in the form"
+        description: "Please fix the errors in the form",
+        className: "bg-[#003087] text-white border-none",
       });
       return;
     }
@@ -176,15 +177,16 @@ const UserManagement: React.FC = () => {
         loadUsers();
         toast({
           title: "Success",
-          description: "User created successfully"
+          description: "User created successfully",
+          className: "bg-[#003087] text-white border-none",
         });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to perform operation";
       toast({
-        variant: "destructive",
         title: "Error",
-        description:  errorMessage
+        description:  errorMessage,
+        className: "bg-[#003087] text-white border-none",
       });
     }
   }, [newUser, validateForm, toast, loadUsers]);
@@ -208,9 +210,9 @@ const UserManagement: React.FC = () => {
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       toast({
-        variant: "destructive",
         title: "Validation Error",
-        description: "Please fix the errors in the form"
+        description: "Please fix the errors in the form",
+        className: "bg-[#003087] text-white border-none",
       });
       return;
     }
@@ -231,15 +233,16 @@ const UserManagement: React.FC = () => {
         loadUsers();
         toast({
           title: "Success",
-          description: "User updated successfully"
+          description: "User updated successfully",
+          className: "bg-[#003087] text-white border-none",
         });
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Failed to update user";
       toast({
-        variant: "destructive",
         title: "Error",
-        description: errorMessage
+        description: errorMessage,
+        className: "bg-[#003087] text-white border-none",
       });
     }
   }, [editingUser, validateForm, toast, loadUsers]);

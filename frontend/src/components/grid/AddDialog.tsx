@@ -79,6 +79,7 @@ export const AddDialog = ({
       toast({
         title: "Success",
         description: "Record added successfully",
+        className: "bg-[#003087] text-white border-none",
       });
       onSuccess();
       handleClose();
@@ -90,6 +91,7 @@ export const AddDialog = ({
         variant: "destructive",
         title: "Error",
         description: errorMessage,
+        className: "bg-[#003087] text-white border-none",
       });
     } finally {
       setIsSaving(false);
