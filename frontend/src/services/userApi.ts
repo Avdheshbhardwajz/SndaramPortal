@@ -101,18 +101,19 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
   }
 };
 
-export const toggleUserActive = async (userId: string): Promise<{ success: boolean; message: string; data?: UserActiveResponse }> => {
+export const toggleUserActive = async (email: string) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/isactive`, {
-      user_id: userId
-    }, {
-      headers: getAuthHeaders()
-    });
-
+    const response = await axios.post(
+      `${API_BASE_URL}/isactive`,
+      { email },
+      { headers: getAuthHeaders() }
+    );
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
-    throw new Error(axiosError.response?.data?.message || 'Failed to update user status');
+    throw new Error(
+      axiosError.response?.data?.message || "Failed to toggle user status"
+    );
   }
 };
 

@@ -95,10 +95,10 @@ const UserManagement: React.FC = () => {
 
   const confirmToggleUserActive = async () => {
     const user = dialogState.disable.user;
-    if (!user?.id) return;
+    if (!user?.email) return;
 
     try {
-      const response = await toggleUserActive(user.id.toString());
+      const response = await toggleUserActive(user.email);
       if (response.success) {
         toast({
           title: "Success",
@@ -110,7 +110,7 @@ const UserManagement: React.FC = () => {
         if (response.data?.active !== undefined) {
           setUsers(prevUsers => 
             prevUsers.map(u => 
-              u.id === user.id 
+              u.email === user.email 
                 ? { ...u, isDisabled: !response.data!.active }
                 : u
             )
@@ -123,7 +123,7 @@ const UserManagement: React.FC = () => {
       console.error(error);
       toast({
         title: "Error",
-        description: "Failed to update user status",
+        description: error instanceof Error ? error.message : "Failed to update user status",
         className: "bg-[#003087] text-white border-none",
       });
       // Refresh users list to ensure UI is in sync with database
