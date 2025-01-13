@@ -13,16 +13,29 @@ const Configuration: React.FC = () => {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await axios.get(`http://localhost:8080/table`);
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await axios.get(`http://localhost:8080/table`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
         if (response.data && response.data.success && response.data.tables) {
           const tableNames = response.data.tables.map((table: { table_name: string }) => table.table_name);
           setTables(tableNames);
+        } else {
+          throw new Error('Failed to fetch tables');
         }
       } catch (error) {
         console.error('Error fetching tables:', error);
         toast({
           title: "Error",
-          description: "Failed to fetch tables",
+          description: error instanceof Error ? error.message : "Failed to fetch tables",
           variant: "destructive",
         });
       }
@@ -62,4 +75,3 @@ const Configuration: React.FC = () => {
 };
 
 export default Configuration;
-

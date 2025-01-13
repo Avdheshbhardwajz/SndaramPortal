@@ -36,7 +36,17 @@ export function AdminNotificationDrawer({ isOpen, onClose }: NotificationDrawerP
       setError(null);
       
       try {
-        const response = await fetch("http://localhost:8080/admin-notification");
+        const token = localStorage.getItem('token');
+        if (!token) {
+          throw new Error('No authentication token found');
+        }
+
+        const response = await fetch("http://localhost:8080/admin-notification", {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
         
         if (!response.ok) {
           throw new Error('Failed to fetch notifications');

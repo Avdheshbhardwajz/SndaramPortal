@@ -36,6 +36,17 @@ export interface User {
   isDisabled?: boolean;
 }
 
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  };
+};
+
 export const createUser = async (userData: User) => {
   try {
     const response = await axios.post(`${API_BASE_URL}/signup`, {
@@ -44,6 +55,8 @@ export const createUser = async (userData: User) => {
       role: userData.role,
       first_name: userData.firstName,
       last_name: userData.lastName,
+    }, {
+      headers: getAuthHeaders()
     });
     return response.data;
   } catch (error) {
@@ -56,7 +69,9 @@ export const createUser = async (userData: User) => {
 
 export const getAllUsers = async () => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/users`);
+    const response = await axios.get(`${API_BASE_URL}/users`, {
+      headers: getAuthHeaders()
+    });
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -74,6 +89,8 @@ export const updateUser = async (userId: string, userData: Partial<User>) => {
       first_name: userData.firstName,
       last_name: userData.lastName,
       password: userData.password,
+    }, {
+      headers: getAuthHeaders()
     });
     return response.data;
   } catch (error) {
@@ -89,9 +106,7 @@ export const toggleUserActive = async (userId: string): Promise<{ success: boole
     const response = await axios.post(`${API_BASE_URL}/isactive`, {
       user_id: userId
     }, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-      }
+      headers: getAuthHeaders()
     });
 
     return response.data;
@@ -103,18 +118,11 @@ export const toggleUserActive = async (userId: string): Promise<{ success: boole
 
 export const getHighlightedCells = async (tableName: string): Promise<HighlightResponse> => {
   try {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-
     const response = await axios.post<HighlightResponse>(
       `${API_BASE_URL}/highlight-cells`,
       { tableName },
       {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: getAuthHeaders()
       }
     );
 

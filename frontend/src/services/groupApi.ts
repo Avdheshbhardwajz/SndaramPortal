@@ -2,7 +2,15 @@ import axios from "axios";
 
 const API_BASE_URL = "http://localhost:8080";
 
-export interface TableGroup {
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('token');
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+};
+
+interface TableGroup {
   group_id: string;
   group_name: string;
   tables: string[];
@@ -19,7 +27,10 @@ interface ApiResponse<T> {
 export const getGroupList = async (): Promise<TableGroup[]> => {
   try {
     const response = await axios.get<ApiResponse<TableGroup[]>>(
-      `${API_BASE_URL}/getgrouplist`
+      `${API_BASE_URL}/getgrouplist`,
+      {
+        headers: getAuthHeaders(),
+      }
     );
     if (!response.data.success) {
       throw new Error(response.data.message || "Failed to fetch groups");
@@ -45,6 +56,9 @@ export const addGroup = async (name: string): Promise<void> => {
       `${API_BASE_URL}/addgroup`,
       {
         group_name: name,
+      },
+      {
+        headers: getAuthHeaders(),
       }
     );
     if (!response.data.success) {
@@ -66,6 +80,9 @@ export const addTable = async (
       {
         group_name: groupName,
         table_list: [tableName],
+      },
+      {
+        headers: getAuthHeaders(),
       }
     );
     if (!response.data.success) {
@@ -83,6 +100,9 @@ export const deleteGroup = async (groupName: string): Promise<void> => {
       `${API_BASE_URL}/removegroup`,
       {
         group_name: groupName,
+      },
+      {
+        headers: getAuthHeaders(),
       }
     );
     if (!response.data.success) {
@@ -104,6 +124,9 @@ export const deleteTable = async (
       {
         group_name: groupName,
         table_name: tableName,
+      },
+      {
+        headers: getAuthHeaders(),
       }
     );
     if (!response.data.success) {

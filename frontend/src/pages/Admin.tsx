@@ -9,8 +9,12 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('adminToken');
-    if (!token) {
+    const token = localStorage.getItem('token');
+    const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+    
+    if (!token || userData.role?.toLowerCase() !== 'admin') {
+      localStorage.removeItem('token');
+      localStorage.removeItem('userData');
       navigate('/login');
     }
   }, [navigate]);
@@ -28,4 +32,3 @@ const Admin: React.FC = () => {
 };
 
 export default Admin;
-

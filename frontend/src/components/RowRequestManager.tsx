@@ -135,11 +135,16 @@ export const RowRequestManager: React.FC = () => {
       setLoading(true);
       console.log('Fetching requests...');
       
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
       const response = await fetch('http://localhost:8080/fetchrowrequest', {
-        method: 'POST',
+        method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -174,14 +179,9 @@ export const RowRequestManager: React.FC = () => {
   const handleAccept = useCallback(async (requestId: string) => {
     try {
       console.log('Accepting request:', requestId);
-      const userDataString = localStorage.getItem('userData');
-      if (!userDataString) {
-        throw new Error('User data not found');
-      }
-
-      const userData = JSON.parse(userDataString);
-      if (!userData.user_id) {
-        throw new Error('Admin ID not found');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
       console.log('Making API call to accept request');
@@ -189,34 +189,30 @@ export const RowRequestManager: React.FC = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          request_id: requestId,
-          admin: userData.user_id,
+          request_id: requestId
         }),
       });
-
-      console.log('API Response:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to accept request');
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-
       if (data.success) {
         toast({
           title: "Success",
           description: "Request accepted successfully",
+          className: "bg-[#003087] text-white border-none",
         });
         void fetchRequests();
       } else {
         throw new Error(data.message || 'Failed to accept request');
       }
     } catch (error) {
-      console.error('Error in handleAccept:', error);
+      console.error('Error accepting request:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -227,51 +223,40 @@ export const RowRequestManager: React.FC = () => {
 
   const handleReject = useCallback(async (requestId: string, comments: string) => {
     try {
-      console.log('Rejecting request:', requestId, 'with comments:', comments);
-      const userDataString = localStorage.getItem('userData');
-      if (!userDataString) {
-        throw new Error('User data not found');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
-      const userData = JSON.parse(userDataString);
-      if (!userData.user_id) {
-        throw new Error('Admin ID not found');
-      }
-
-      console.log('Making API call to reject request');
       const response = await fetch('http://localhost:8080/rejectrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           request_id: requestId,
-          admin: userData.user_id,
           comments
         }),
       });
-
-      console.log('API Response:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to reject request');
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-
       if (data.success) {
         toast({
           title: "Success",
           description: "Request rejected successfully",
+          className: "bg-[#003087] text-white border-none",
         });
         void fetchRequests();
       } else {
         throw new Error(data.message || 'Failed to reject request');
       }
     } catch (error) {
-      console.error('Error in handleReject:', error);
+      console.error('Error rejecting request:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -281,53 +266,33 @@ export const RowRequestManager: React.FC = () => {
   }, [fetchRequests, toast]);
 
   const handleBulkAccept = useCallback(async () => {
-    if (selectedRequests.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No requests selected",
-      });
-      return;
-    }
-
     try {
-      console.log('Bulk accepting requests:', selectedRequests);
-      const userDataString = localStorage.getItem('userData');
-      if (!userDataString) {
-        throw new Error('User data not found');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
-      const userData = JSON.parse(userDataString);
-      if (!userData.user_id) {
-        throw new Error('Admin ID not found');
-      }
-
-      console.log('Making API call to accept all requests');
       const response = await fetch('http://localhost:8080/acceptallrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          request_ids: selectedRequests,
-          admin: userData.user_id,
+          request_ids: selectedRequests
         }),
       });
-
-      console.log('API Response:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to accept requests');
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-
       if (data.success) {
         toast({
           title: "Success",
-          description: "All selected requests accepted successfully",
+          description: "Selected requests accepted successfully",
+          className: "bg-[#003087] text-white border-none",
         });
         setSelectedRequests([]);
         void fetchRequests();
@@ -335,7 +300,7 @@ export const RowRequestManager: React.FC = () => {
         throw new Error(data.message || 'Failed to accept requests');
       }
     } catch (error) {
-      console.error('Error in handleBulkAccept:', error);
+      console.error('Error accepting requests:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -345,54 +310,34 @@ export const RowRequestManager: React.FC = () => {
   }, [selectedRequests, fetchRequests, toast]);
 
   const handleBulkReject = useCallback(async (comments: string) => {
-    if (selectedRequests.length === 0) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No requests selected",
-      });
-      return;
-    }
-
     try {
-      console.log('Bulk rejecting requests:', selectedRequests, 'with comments:', comments);
-      const userDataString = localStorage.getItem('userData');
-      if (!userDataString) {
-        throw new Error('User data not found');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
       }
 
-      const userData = JSON.parse(userDataString);
-      if (!userData.user_id) {
-        throw new Error('Admin ID not found');
-      }
-
-      console.log('Making API call to reject all requests');
       const response = await fetch('http://localhost:8080/rejectallrow', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           request_ids: selectedRequests,
-          admin: userData.user_id,
           comments
         }),
       });
-
-      console.log('API Response:', response.status);
 
       if (!response.ok) {
         throw new Error('Failed to reject requests');
       }
 
       const data = await response.json();
-      console.log('Response data:', data);
-
       if (data.success) {
         toast({
           title: "Success",
-          description: "All selected requests rejected successfully",
+          description: "Selected requests rejected successfully",
+          className: "bg-[#003087] text-white border-none",
         });
         setSelectedRequests([]);
         void fetchRequests();
@@ -400,7 +345,7 @@ export const RowRequestManager: React.FC = () => {
         throw new Error(data.message || 'Failed to reject requests');
       }
     } catch (error) {
-      console.error('Error in handleBulkReject:', error);
+      console.error('Error rejecting requests:', error);
       toast({
         variant: "destructive",
         title: "Error",
