@@ -10,6 +10,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Label } from "@/components/ui/label";
 import axios, { AxiosError } from "axios";
+import { getAuthHeaders } from "@/utils/authHeaders";
 
 type AlertType = "error" | "success" | "info";
 
@@ -67,7 +68,8 @@ export default function ColumnConfigurator({
       setLoading(true);
       const columnsResponse = await axios.post<ColumnResponse>(
         `http://localhost:8080/fetchcolumn`,
-        { table_name: tableName }
+        { table_name: tableName },
+        { headers: getAuthHeaders() }
       );
 
       if (!columnsResponse.data.success || !columnsResponse.data.columns) {
@@ -89,7 +91,8 @@ export default function ColumnConfigurator({
           {
             table_name: tableName,
             action: "get",
-          }
+          },
+          { headers: getAuthHeaders() }
         );
 
         if (statusResponse.data.success && statusResponse.data.column_list) {
@@ -128,18 +131,23 @@ export default function ColumnConfigurator({
     newStatus: "editable" | "non-editable"
   ) => {
     try {
+      setLoading(true);
+      
+      // Create a new column_list with the updated status
       const updatedColumns = columns.map((col) =>
         col.column_name === columnName
           ? { ...col, column_status: newStatus }
           : col
       );
 
-      const response = await axios.post<StatusResponse>(
+      const response = await axios.post(
         "http://localhost:8080/ColumnPermission",
         {
           table_name: selectedTable,
           column_list: updatedColumns,
-        }
+          action: "update",
+        },
+        { headers: getAuthHeaders() }
       );
 
       if (response.data.success) {
@@ -157,6 +165,8 @@ export default function ColumnConfigurator({
         axiosError.response?.data?.message || "Failed to update column status",
         "error"
       );
+    } finally {
+      setLoading(false);
     }
   };
 

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, X } from "lucide-react";
 import axios, { AxiosError } from "axios";
+import { getAuthHeaders } from "@/utils/authHeaders";
 
 interface DropdownOption {
   value: string;
@@ -63,9 +64,11 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
   const fetchColumns = async (tableName: string) => {
     try {
       setLoading(true);
-      const response = await axios.post(`http://localhost:8080/fetchcolumn`, {
-        table_name: tableName,
-      });
+      const response = await axios.post(
+        `http://localhost:8080/fetchcolumn`,
+        { table_name: tableName },
+        { headers: getAuthHeaders() }
+      );
 
       if (response.data.success && response.data.columns) {
         setColumns(response.data.columns);
@@ -87,7 +90,8 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
         {
           table_name: selectedTable,
           columnName: selectedColumn,
-        }
+        },
+        { headers: getAuthHeaders() }
       );
 
       if (response.data.success && response.data.data) {
@@ -151,7 +155,8 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
         {
           table_name: selectedTable,
           columnName: selectedColumn,
-        }
+        },
+        { headers: getAuthHeaders() }
       );
 
       let existingTableOptions: ColumnDropdownOption[] = [];
@@ -186,7 +191,8 @@ export default function DropdownManager({ tables = [] }: DropdownManagerProps) {
         {
           table_name: selectedTable,
           dropdown_options: allOptions,
-        }
+        },
+        { headers: getAuthHeaders() }
       );
 
       if (response.data.success) {

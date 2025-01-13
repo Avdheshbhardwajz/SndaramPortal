@@ -1,13 +1,14 @@
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.rejectAllRow = async (req, res) => {
-    const { request_ids, comments, admin } = req.body;
+    const { request_ids, comments } = req.body;
+    const admin = req.user.user_id; // Get admin from token instead of body
 
     // Validate input
-    if (!Array.isArray(request_ids) || request_ids.length === 0 || !comments || !admin) {
+    if (!Array.isArray(request_ids) || request_ids.length === 0 || !comments) {
         return res.status(400).json({
             success: false,
-            message: 'Required fields: request_ids (non-empty array), comments, and admin are missing or invalid.',
+            message: 'Required fields: request_ids (non-empty array) and comments are missing or invalid.',
         });
     }
 

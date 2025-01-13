@@ -1,13 +1,14 @@
 const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.rejectRow = async (req, res) => {
-    const { request_id, comments, admin } = req.body;
+    const { request_id, comments } = req.body;
+    const admin = req.user.user_id; // Get admin from token instead of body
 
     // Validate input
-    if (!request_id || !comments || !admin) {
+    if (!request_id || !comments) {
         return res.status(400).json({
             success: false,
-            message: 'Required fields: request_id, comments, and admin are missing.',
+            message: 'Required fields: request_id and comments are missing.',
         });
     }
 
