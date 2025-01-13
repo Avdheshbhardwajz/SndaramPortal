@@ -2,13 +2,14 @@ const { client_update } = require('../../configuration/database/databaseUpdate.j
 
 exports.acceptRow = async (req, res) => {
     try {
-        const { request_id, admin, comments } = req.body;
+        const { request_id } = req.body;
+        const admin = req.user.email; // Get admin email from JWT token
 
         // Validate input
-        if (!request_id || !admin) {
+        if (!request_id) {
             return res.status(400).json({
                 success: false,
-                message: 'Required fields: request_id and admin are missing.',
+                message: 'Required field: request_id is missing.',
             });
         }
 
@@ -18,11 +19,11 @@ exports.acceptRow = async (req, res) => {
         // Update the row with the given request_id
         const query = `
             UPDATE app.add_row_table
-            SET status = $1, admin = $2, comments = $3, updated_at = NOW()
-            WHERE request_id = $4
+            SET status = $1, admin = $2, updated_at = NOW()
+            WHERE request_id = $3
             RETURNING *;
         `;
-        const values = ['approve', admin, comments || null, request_id];
+        const values = ['approve', admin, request_id];
 
         const result = await client_update.query(query, values);
 

@@ -266,6 +266,15 @@ export const RowRequestManager: React.FC = () => {
   }, [fetchRequests, toast]);
 
   const handleBulkAccept = useCallback(async () => {
+    if (selectedRequests.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No requests selected",
+      });
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token');
       if (!token) {
