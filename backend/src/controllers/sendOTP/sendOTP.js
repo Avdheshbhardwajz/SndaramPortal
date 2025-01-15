@@ -5,12 +5,32 @@ require('dotenv').config();
 
 // Create email transporter
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
+    secure: false,
+    requireTLS: true,
     auth: {
-        user: process.env.OTP_EMAIL,
-        pass: process.env.OTP_PASSWORD
-    }
+        user: process.env.OTP_EMAIL.trim(),
+        pass: process.env.OTP_PASSWORD.replace(/['"]/g, '').trim()
+    },
+    tls: {
+        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+      
+    },
+    
 });
+
+// Verify SMTP connection on startup
+transporter.verify()
+    .then(() => console.log('SMTP Server connection established'))
+    .catch(error => {
+        console.error('SMTP Connection Error:', {
+            code: error.code,
+            message: error.message
+        });
+        process.exit(1); // Exit if SMTP connection fails on startup
+    });
 
 // Function to send OTP email
 async function sendOTPEmail(recipientEmail, otp) {
