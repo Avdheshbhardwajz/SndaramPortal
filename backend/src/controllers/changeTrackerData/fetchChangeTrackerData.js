@@ -1,4 +1,4 @@
-const { client } = require('../../configuration/database/database.js');
+const { client_update } = require('../../configuration/database/databaseUpdate.js');
 
 exports.fetchChangeTrackerData = async (req, res) => {
     try {
@@ -8,7 +8,7 @@ exports.fetchChangeTrackerData = async (req, res) => {
             FROM app.change_tracker
             ORDER BY created_at DESC;
         `;
-        const result = await client.query(query);
+        const result = await client_update.query(query);
 
         res.status(200).json({
             success: true,
@@ -26,4 +26,3 @@ exports.fetchChangeTrackerData = async (req, res) => {
         });
     }
 };
-

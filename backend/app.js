@@ -26,10 +26,7 @@ app.use(express.urlencoded({ extended: true }));
 const routesPath = require("./src/routes/routes.js");
 app.use("/", routesPath);
 
-const {
-  databaseConnection,
-} = require("./src/configuration/database/database.js");
-databaseConnection();
+
 
 const {
   databaseUpdateConnection,

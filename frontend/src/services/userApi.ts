@@ -4,11 +4,11 @@ interface ErrorResponse {
   message?: string;
 }
 
-interface UserActiveResponse {
-  user_id: string;
-  active: boolean;
-  updated_at: string;
-}
+// interface UserActiveResponse {
+//   user_id: string;
+//   active: boolean;
+//   updated_at: string;
+// }
 
 interface CellHighlight {
   row_id: string;

@@ -1,4 +1,4 @@
-const { client } = require('../../configuration/database/database.js');
+const { client_update } = require('../../configuration/database/databaseUpdate.js');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 
@@ -16,7 +16,7 @@ exports.createUser = async (req, res) => {
         }
 
         // Check if user already exists
-        const userExists = await client.query(
+        const userExists = await client_update.query(
             'SELECT * FROM app.users WHERE email = $1',
             [email]
         );
@@ -51,7 +51,7 @@ exports.createUser = async (req, res) => {
             RETURNING user_id, email, role, first_name, last_name, created_at;
         `;
 
-        const result = await client.query(query, [
+        const result = await client_update.query(query, [
             userId,
             email,
             hashedPassword,
@@ -83,7 +83,7 @@ exports.getAllUsers = async (req, res) => {
             FROM app.users
             ORDER BY created_at DESC;
         `;
-        const result = await client.query(query);
+        const result = await client_update.query(query);
 
         res.status(200).json({
             success: true,
@@ -109,7 +109,7 @@ exports.getUserById = async (req, res) => {
             FROM app.users
             WHERE user_id = $1;
         `;
-        const result = await client.query(query, [id]);
+        const result = await client_update.query(query, [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -191,7 +191,7 @@ exports.updateUser = async (req, res) => {
         `;
 
         values.push(id);
-        const result = await client.query(query, values);
+        const result = await client_update.query(query, values);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -221,7 +221,7 @@ exports.deleteUser = async (req, res) => {
 
     try {
         const query = 'DELETE FROM app.users WHERE user_id = $1 RETURNING *;';
-        const result = await client.query(query, [id]);
+        const result = await client_update.query(query, [id]);
 
         if (result.rows.length === 0) {
             return res.status(404).json({
@@ -259,7 +259,7 @@ exports.signin = async (req, res) => {
 
         // Find user
         const query = 'SELECT * FROM app.users WHERE email = $1 AND role = $2';
-        const result = await client.query(query, [email, role]);
+        const result = await client_update.query(query, [email, role]);
 
         if (result.rows.length === 0) {
             return res.status(401).json({
