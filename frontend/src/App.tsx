@@ -5,7 +5,8 @@ import OTPVerificationPage from "./pages/OTPVerificationPage"
 import DashboardPage from "./pages/DashBoardPage"
 import AdminPage from "./pages/AdminPage"
 import CheckerPage from "./pages/CheckerPage"
-import  MakerPage from "./pages/DashBoardPage"
+import MakerPage from "./pages/DashBoardPage"
+import TablesPage from "./pages/TablesPage"
 import ProtectedRoute from "./components/ProtectedRoute"
 
 const App: React.FC = () => {
@@ -50,6 +51,16 @@ const App: React.FC = () => {
         element={
           <ProtectedRoute allowedRoles={['maker', 'checker', 'admin']}>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      
+      {/* Protected Tables Route */}
+      <Route
+        path="/tables"
+        element={
+          <ProtectedRoute allowedRoles={['maker', 'checker', 'admin']}>
+            <TablesPage />
           </ProtectedRoute>
         }
       />
