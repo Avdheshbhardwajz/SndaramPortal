@@ -1,7 +1,7 @@
 import type React from 'react'
 import { useNavigate } from 'react-router-dom'
 
-const DashboardPage: React.FC = () => {
+const CheckerPage: React.FC = () => {
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -13,7 +13,7 @@ const DashboardPage: React.FC = () => {
     <div className="min-h-screen p-8 font-poppins">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-2xl md:text-[28px] font-bold text-[#1E3A8A] tracking-[-0.02em]">
-          Maker Dashboard
+          Checker Dashboard
         </h1>
         <button
           onClick={handleLogout}
@@ -25,23 +25,23 @@ const DashboardPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Create Request</h2>
+          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Pending Approvals</h2>
           <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            Create new requests for approval
+            Review and approve pending requests
           </p>
         </div>
 
         <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">My Requests</h2>
+          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Approved Requests</h2>
           <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            View and track your submitted requests
+            View history of approved requests
           </p>
         </div>
 
         <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Request History</h2>
+          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Rejected Requests</h2>
           <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            View history of all your requests
+            View history of rejected requests
           </p>
         </div>
       </div>
@@ -49,4 +49,4 @@ const DashboardPage: React.FC = () => {
   )
 }
 
-export default DashboardPage
+export default CheckerPage

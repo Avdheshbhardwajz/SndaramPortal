@@ -5,12 +5,14 @@ import { Logo } from "./Logo"
 import { OTPInput } from "./OTPInput"
 import { authService } from "../services/authService"
 import { useOTPTimer } from "../hooks/useOTPTimer"
+import type { LoginResponse } from "../types/auth"
 
 interface OTPVerificationProps {
   email: string
+  onVerify: (response: LoginResponse) => void
 }
 
-export const OTPVerification: React.FC<OTPVerificationProps> = ({ email }) => {
+export const OTPVerification: React.FC<OTPVerificationProps> = ({ email, onVerify }) => {
   const [otp, setOTP] = useState<string[]>(Array(6).fill(""))
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
@@ -32,7 +34,7 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ email }) => {
         setError(response.message)
       }
     } catch (err) {
-      console.log(err)
+      console.error(err)
       setError("Failed to resend OTP. Please try again.")
     }
   }
@@ -49,14 +51,13 @@ export const OTPVerification: React.FC<OTPVerificationProps> = ({ email }) => {
 
     try {
       const response = await authService.verifyOTP(email, otpString)
-      if (response.success && response.token && response.redirectPath) {
-        localStorage.setItem("token", response.token)
-        navigate(response.redirectPath)
+      if (response.success && response.token) {
+        onVerify(response)
       } else {
-        setError(response.message)
+        setError(response.message || "Verification failed")
       }
     } catch (err) {
-      console.log(err)
+      console.error(err)
       setError("Failed to verify OTP. Please try again.")
     } finally {
       setIsLoading(false)

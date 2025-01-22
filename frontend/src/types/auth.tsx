@@ -1,19 +1,21 @@
+export interface OTPResponse {
+  success: boolean
+  message: string
+  error?: string
+}
+
 export interface LoginResponse {
-    success: boolean
-    message: string
-    token?: string
-    data?: {
-      email: string
-      role: string
-      first_name: string
-      last_name: string
-    }
-    redirectPath?: string
+  success: boolean
+  message: string
+  token?: string
+  error?: string
+  data?: {
+    email: string
+    role: string
+    first_name: string
+    last_name: string
   }
-  
-  export interface OTPResponse {
-    success: boolean
-    message: string
-  }
-  
-  
+  redirectPath?: string
+}
+
+export type UserRole = 'admin' | 'maker' | 'checker'
