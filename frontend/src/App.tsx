@@ -1,78 +1,18 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Auth from './pages/Auth';
-import Admin from './pages/Admin';
-import DashboardLayout from './pages/DashboardLayout';
-import Checker from './pages/Checker';
-import { Toaster } from "@/components/ui/toaster";
-
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRole: 'admin' | 'maker' | 'checker';
-}
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, allowedRole }) => {
-  const token = localStorage.getItem('token');
-  const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-  
-  if (!token || userData.role?.toLowerCase() !== allowedRole) {
-    // Clear storage if invalid and redirect
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
-};
+import type React from "react"
+import { Routes, Route } from "react-router-dom"
+import LoginPage from "./pages/LoginPage"
+import OTPVerificationPage from "./pages/OTPVerificationPage"
+import DashboardPage from "./pages/DashBoardPage"
 
 const App: React.FC = () => {
   return (
-    <div>
-      <Router>
-        <Routes>
-          {/* Public Auth Route */}
-          <Route path="/login" element={<Auth />} />
+    <Routes>
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/verify-otp" element={<OTPVerificationPage />} />
+      <Route path="/dashboard" element={<DashboardPage />} />
+    </Routes>
+  )
+}
 
-          {/* Admin Route */}
-          <Route
-            path="/admin/*"
-            element={
-              <ProtectedRoute allowedRole="admin">
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
+export default App
 
-          {/* Maker Dashboard Route */}
-          <Route
-            path="/dashboard/*"
-            element={
-              <ProtectedRoute allowedRole="maker">
-                <DashboardLayout />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Checker Dashboard Route */}
-          <Route
-            path="/checker/*"
-            element={
-              <ProtectedRoute allowedRole="checker">
-                <Checker />
-              </ProtectedRoute>
-            }
-          />
-
-          {/* Default Route */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-
-          {/* Catch all other routes */}
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
-      </Router>
-      <Toaster />
-    </div>
-  );
-};
-
-export default App;
