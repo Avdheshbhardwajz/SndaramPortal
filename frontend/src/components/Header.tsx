@@ -1,10 +1,11 @@
-import React, { useState } from 'react'
-import LogoFull from '../assets/images/Logo-Full.svg'
-import { Avatar } from './ui/Avatar'
+import React, { useState, useEffect } from 'react'
 import { IconButton } from './ui/IconButton'
+import { Avatar } from './ui/Avatar'
 import { Badge } from './ui/Badge'
 import { colors } from '../constants/colors'
 import { sizes } from '../constants/sizes'
+import { NotificationDrawer } from './NotificationDrawer'
+import { notificationService } from '../services/notificationService'
 
 interface HeaderProps {
   firstName: string
@@ -19,66 +20,61 @@ const NotificationIcon = () => (
 )
 
 const ChevronDownIcon = () => (
-  <svg 
-    width="20" 
-    height="20" 
-    viewBox="0 0 20 20" 
-    fill="none"
-  >
-    <path 
-      d="M5 7.5L10 12.5L15 7.5" 
-      stroke="currentColor" 
-      strokeWidth="1.67" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
+  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
 const LogoutIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mr-3">
-    <path 
-      d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5" 
-      stroke="currentColor" 
-      strokeWidth="1.67" 
-      strokeLinecap="round" 
-      strokeLinejoin="round"
-    />
+    <path d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
 
 export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => {
   const [showLogout, setShowLogout] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [unreadCount, setUnreadCount] = useState(0)
   
-  const getInitial = (name: string) => name.charAt(0).toUpperCase()
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const userRole = role.toLowerCase() as 'maker' | 'checker' | 'admin'
+      const data = await notificationService.fetchNotifications(userRole)
+      setNotifications(data)
+      setUnreadCount(data.length)
+    }
+    
+    fetchNotifications()
+  }, [role])
 
-  const handleLogoutClick = () => {
-    setShowLogout(false)
+  const handleLogoutClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
     onLogout()
+    setShowLogout(false)
   }
 
   return (
-    <header className={`bg-white h-[${sizes.header.height}] px-8 flex items-center justify-between border-b border-[${colors.border.default}]`}>
-      <div className="flex items-center">
-        <img src={LogoFull} alt="Sundaram Mutual" className="h-8" />
-      </div>
-      
-      <div className="flex items-center gap-6">
-        <div className="relative">
-          <IconButton
-            icon={<NotificationIcon />}
-            className="hover:opacity-80 transition-opacity"
-          />
-          <Badge count={2} />
-        </div>
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+      <div className="flex items-center justify-between px-6 py-4">
+        <h1 className="text-xl font-semibold text-gray-900">Sundaram Portal</h1>
+        
+        <div className="flex items-center gap-6">
+          <div className="relative">
+            <IconButton
+              icon={<NotificationIcon />}
+              className="hover:opacity-80 transition-opacity"
+              onClick={() => setShowNotifications(true)}
+            />
+            {unreadCount > 0 && <Badge count={unreadCount} />}
+          </div>
 
-        <div className="flex items-center gap-3">
-          <Avatar initial={getInitial(firstName)} />
-          
-          <div className="flex items-center gap-1">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-[${colors.primary.text}]">{firstName}</span>
-              <span className="text-sm text-[${colors.secondary.text}]">{role}</span>
+          <div className="flex items-center gap-3">
+            <Avatar name={firstName} size={sizes.sm} />
+            
+            <div>
+              <p className="text-sm font-medium text-gray-900">{firstName}</p>
+              <p className="text-xs text-gray-500">{role}</p>
             </div>
             
             <div className="relative">
@@ -89,7 +85,7 @@ export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => 
               />
               
               {showLogout && (
-                <div className={`absolute right-0 mt-2 w-[240px] bg-white rounded-lg shadow-lg py-1 z-10 border border-[${colors.border.default}]`}>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100"> 
                   <button
                     onClick={handleLogoutClick}
                     className={`flex w-full items-center px-4 py-2 text-sm text-[${colors.primary.text}] hover:bg-[${colors.background.hover}]`}
@@ -97,12 +93,18 @@ export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => 
                     <LogoutIcon />
                     Logout
                   </button>
-                </div>
+                </div> 
               )}
             </div>
           </div>
         </div>
       </div>
+
+      <NotificationDrawer
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+        notifications={notifications}
+      />
     </header>
   )
 }

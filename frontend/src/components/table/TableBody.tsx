@@ -4,31 +4,46 @@ import { Pencil } from 'lucide-react'
 interface TableBodyProps {
   data: Record<string, any>[]
   columns: string[]
-  onRowEdit?: (row: Record<string, any>) => void
-  isColumnEditable: (column: string) => boolean
+  onEditClick?: (row: Record<string, any>) => void
+  isEditable: (column: string) => boolean
 }
 
 export const TableBody: React.FC<TableBodyProps> = ({
   data,
   columns,
-  onRowEdit,
-  isColumnEditable
+  onEditClick,
+  isEditable
 }) => {
+  if (!data || data.length === 0) {
+    return (
+      <tbody>
+        <tr>
+          <td
+            colSpan={columns.length + (onEditClick ? 1 : 0)}
+            className="py-4 px-6 text-sm text-gray-500 text-center"
+          >
+            No data available
+          </td>
+        </tr>
+      </tbody>
+    )
+  }
+
   return (
-    <tbody>
+    <tbody className="bg-white divide-y divide-gray-200">
       {data.map((row, rowIndex) => (
         <tr
-          key={rowIndex}
-          className="hover:bg-gray-50 bg-white"
+          key={row.id || row[`${columns[0]}_sk`] || row[`${columns[0]}_id`] || rowIndex}
+          className="hover:bg-gray-50"
         >
           {/* Action Column - Sticky */}
-          {onRowEdit && (
+          {onEditClick && (
             <td
-              className="sticky left-0 z-10 py-4 px-6 text-sm font-medium text-gray-900 whitespace-nowrap bg-inherit"
+              className="sticky left-0 z-10 py-4 px-6 text-sm font-medium text-gray-900 whitespace-nowrap bg-white"
               style={{ boxShadow: '2px 0 4px rgba(0,0,0,0.05)' }}
             >
               <button
-                onClick={() => onRowEdit(row)}
+                onClick={() => onEditClick && onEditClick(row)}
                 className="text-blue-600 hover:text-blue-900"
                 title="Edit row"
               >
@@ -39,17 +54,15 @@ export const TableBody: React.FC<TableBodyProps> = ({
 
           {/* Data Columns */}
           {columns.map((column) => {
-            const editable = isColumnEditable(column);
+            const value = row[column];
             return (
               <td
                 key={column}
-                className={`py-4 px-6 text-sm whitespace-nowrap border-b border-gray-100 ${
-                  editable 
-                    ? 'text-gray-900 bg-white' 
-                    : 'text-gray-500 bg-gray-50/80'
+                className={`py-4 px-6 text-sm whitespace-nowrap ${
+                  isEditable(column) ? 'text-gray-900' : 'text-gray-500 bg-gray-50'
                 }`}
               >
-                {row[column]?.toString() || ''}
+                {value !== null && value !== undefined ? String(value) : '-'}
               </td>
             );
           })}

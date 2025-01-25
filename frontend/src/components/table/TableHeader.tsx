@@ -1,17 +1,25 @@
 import React from 'react'
-import { Search, Plus, Edit } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 
 interface TableHeaderProps {
   searchQuery: string
-  onSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  onSearch: (query: string) => void
   onAddClick: () => void
+  setSearchQuery: (query: string) => void
 }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
   searchQuery,
-  onSearchChange,
-  onAddClick
+  onSearch,
+  onAddClick,
+  setSearchQuery
 }) => {
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value
+    setSearchQuery(newValue)
+    onSearch(newValue)
+  }
+
   return (
     <div className="p-4 border-b border-gray-200 flex justify-between items-center gap-4">
       {/* Search Bar */}
@@ -23,7 +31,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
           type="text"
           placeholder="Search..."
           value={searchQuery}
-          onChange={onSearchChange}
+          onChange={handleSearchChange}
           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
       </div>

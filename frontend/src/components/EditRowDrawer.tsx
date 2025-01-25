@@ -8,6 +8,7 @@ interface EditRowDrawerProps {
   columns: string[]
   onSave: (updatedRow: Record<string, any>) => void
   mode: 'edit' | 'add'
+  isColumnEditable: (column: string) => boolean
 }
 
 export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
@@ -16,7 +17,8 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
   row,
   columns,
   onSave,
-  mode
+  mode,
+  isColumnEditable
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({})
 
@@ -24,14 +26,23 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
     if (row) {
       // Only include editable columns in form data
       const editableData = columns.reduce((acc, column) => {
-        acc[column] = row[column] || ''
+        if (isColumnEditable(column)) {
+          acc[column] = row[column] || ''
+        }
         return acc
       }, {} as Record<string, any>)
       setFormData(editableData)
     } else {
-      setFormData({})
+      // For new rows, only include editable columns
+      const newRowData = columns.reduce((acc, column) => {
+        if (isColumnEditable(column)) {
+          acc[column] = ''
+        }
+        return acc
+      }, {} as Record<string, any>)
+      setFormData(newRowData)
     }
-  }, [row, columns])
+  }, [row, columns, isColumnEditable])
 
   const handleChange = (column: string, value: string) => {
     setFormData(prev => ({
@@ -52,6 +63,9 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
 
   if (!isOpen) return null
 
+  // Get only editable columns
+  const editableColumns = columns.filter(column => isColumnEditable(column))
+
   return (
     <div className="fixed inset-0 overflow-hidden z-50">
       <div className="absolute inset-0 overflow-hidden">
@@ -67,6 +81,9 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
                     <h2 className="text-lg font-medium text-gray-900">
                       {mode === 'edit' ? 'Edit Row' : 'Add Row'}
                     </h2>
+                    <p className="text-sm text-gray-500">
+                      Only editable fields are shown
+                    </p>
                   </div>
                   <div className="h-7 flex items-center">
                     <button
@@ -82,7 +99,7 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
               {/* Form */}
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
                 <div className="px-4 py-6 space-y-6 sm:px-6">
-                  {columns.map(column => (
+                  {editableColumns.map(column => (
                     <div key={column}>
                       <label
                         htmlFor={column}
@@ -106,8 +123,8 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
                 <div className="flex-shrink-0 px-4 py-4 flex justify-end border-t border-gray-200">
                   <button
                     type="button"
-                    onClick={onClose}
                     className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    onClick={onClose}
                   >
                     Cancel
                   </button>

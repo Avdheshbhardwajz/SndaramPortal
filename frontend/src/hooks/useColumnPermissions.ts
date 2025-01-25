@@ -42,11 +42,16 @@ export const useColumnPermissions = (tableName: string) => {
         const data = await response.json();
         
         if (data.success) {
-          // Convert array of column statuses to permissions object
+          // Handle both array and empty object responses
           const permissions: ColumnPermissions = {};
-          data.data.forEach((column: ColumnStatus) => {
-            permissions[column.column_name] = column.column_status === 'editable';
-          });
+          
+          // If data.data is an array, process it
+          if (Array.isArray(data.data)) {
+            data.data.forEach((column: ColumnStatus) => {
+              permissions[column.column_name] = column.column_status === 'editable';
+            });
+          }
+          // If data.data is empty object or any other format, all columns will be non-editable
           setColumnPermissions(permissions);
         } else {
           setError(data.message || 'Failed to fetch column permissions');
@@ -68,8 +73,11 @@ export const useColumnPermissions = (tableName: string) => {
     return columnPermissions[columnName] ?? false;
   };
 
-  const getEditableColumns = (allColumns: string[]): string[] => {
-    return allColumns.filter(column => isColumnEditable(column));
+  const getEditableColumns = (): string[] => {
+    // Return only the column names that are editable
+    return Object.entries(columnPermissions)
+      .filter(([_, isEditable]) => isEditable)
+      .map(([columnName]) => columnName);
   };
 
   return {

@@ -91,8 +91,15 @@ export const useTableData = ({ tableName, pageSize = 10 }: UseTableDataProps): U
       setTotalPages(result.pagination.totalPages);
       
       if (result.data.length > 0) {
+        // Get all columns from the first row, excluding internal fields
         const allColumns = Object.keys(result.data[0]);
-        setColumns(allColumns.filter(col => col !== 'actions'));
+        setColumns(allColumns.filter(col => 
+          !col.startsWith('_') && 
+          col !== 'actions' && 
+          col !== 'id' && 
+          !col.endsWith('_sk') && 
+          !col.endsWith('_id')
+        ));
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while fetching table data');
