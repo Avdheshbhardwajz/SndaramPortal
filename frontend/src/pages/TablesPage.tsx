@@ -1,31 +1,56 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Header } from '../components/Header'
-import { TableCard } from '../components/TableCard'
-import { Pagination } from '../components/Pagination'
-import { fetchTables } from '../services/tableService'
+import React, { useState, useEffect, useRef } from "react"
+import { useNavigate } from "react-router-dom"
+import { Header } from "../components/Header"
+import { TableCard } from "../components/TableCard"
+import { Pagination } from "../components/Pagination"
+import { DynamicTable } from "../components/DynamicTable"
+import { PageSizeSelector } from "../components/PageSizeSelector"
+import { fetchTables } from "../services/tableService"
 
 interface Table {
-  table_name: string
+  table_name: string;
 }
 
 export const TablesPage: React.FC = () => {
-  // State management
   const [tables, setTables] = useState<Table[]>([])
-  const [searchQuery, setSearchQuery] = useState('')
+  const [searchQuery, setSearchQuery] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedTable, setSelectedTable] = useState<string | null>(null)
+  const [pageSize, setPageSize] = useState(10)
+  const [tableKey, setTableKey] = useState(0)
+  const [tablesPerPage, setTablesPerPage] = useState(12) // Default to 12 tables
+  const gridRef = useRef<HTMLDivElement>(null)
 
-  // Constants
-  const TABLES_PER_PAGE = 6
   const navigate = useNavigate()
-  const firstName = localStorage.getItem('firstName') || ''
-  const role = localStorage.getItem('userRole') || ''
+  const firstName = localStorage.getItem("firstName") || ""
+  const role = localStorage.getItem("userRole") || ""
 
-  // Fetch tables on component mount
   useEffect(() => {
     loadTables()
+  }, [])
+
+  // Calculate tables per page based on viewport height
+  useEffect(() => {
+    const calculateTablesPerPage = () => {
+      if (gridRef.current) {
+        const gridRect = gridRef.current.getBoundingClientRect()
+        const viewportHeight = window.innerHeight
+        const availableHeight = viewportHeight - gridRect.top - 20 // Reduced margin
+        const cardHeight = 90 // Reduced card height
+        const cardGap = 16 // Gap between cards
+        const rows = Math.floor((availableHeight + cardGap) / (cardHeight + cardGap))
+        const cols = window.innerWidth >= 1536 ? 4 : window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1
+        const calculatedTablesPerPage = rows * cols
+        setTablesPerPage(Math.max(calculatedTablesPerPage, 8)) // Minimum 8 tables
+        setCurrentPage(1)
+      }
+    }
+
+    calculateTablesPerPage()
+    window.addEventListener('resize', calculateTablesPerPage)
+    return () => window.removeEventListener('resize', calculateTablesPerPage)
   }, [])
 
   const loadTables = async () => {
@@ -36,108 +61,177 @@ export const TablesPage: React.FC = () => {
       if (response.success) {
         setTables(response.tables)
       } else {
-        setError(response.message || 'Failed to fetch tables')
+        setError(response.message || "Failed to fetch tables")
       }
     } catch (err) {
-      console.log(err);
-      
-      setError('An error occurred while fetching tables')
+      setError(err instanceof Error ? err.message : "An error occurred while fetching tables")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Handlers
   const handleLogout = () => {
     localStorage.clear()
-    navigate('/')
+    navigate("/")
   }
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(event.target.value)
-    setCurrentPage(1) // Reset to first page when searching
+    setCurrentPage(1)
   }
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
 
-  // Derived state
-  const filteredTables = tables.filter(table =>
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize)
+    setTableKey(prev => prev + 1)
+  }
+
+  const handleRowEdit = async (updatedRow: Record<string, any>) => {
+    try {
+      // TODO: Implement API call to update the row
+      console.log('Updated row:', updatedRow)
+      
+      // Optionally refresh the table data after successful update
+      // You can implement this using your data fetching logic
+    } catch (error) {
+      console.error('Error updating row:', error)
+    }
+  }
+
+  const filteredTables = tables.filter((table) => 
     table.table_name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const totalPages = Math.ceil(filteredTables.length / TABLES_PER_PAGE)
-  const startIndex = (currentPage - 1) * TABLES_PER_PAGE
-  const displayedTables = filteredTables.slice(startIndex, startIndex + TABLES_PER_PAGE)
+  const totalPages = Math.ceil(filteredTables.length / tablesPerPage)
+  const startIndex = (currentPage - 1) * tablesPerPage
+  const displayedTables = filteredTables.slice(startIndex, startIndex + tablesPerPage)
+
+  if (isLoading) {
+    return (
+      <div className="h-screen bg-white flex flex-col">
+        <Header firstName={firstName} role={role} onLogout={handleLogout} />
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </main>
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="h-screen bg-white flex flex-col overflow-hidden">
       <Header firstName={firstName} role={role} onLogout={handleLogout} />
-      
-      <main className="p-6">
-        <div className="max-w-7xl mx-auto">
-          {/* Breadcrumb */}
-          <div className="flex items-center mb-6 space-x-2">
-            <button 
-              onClick={() => navigate('/dashboard')}
-              className="text-gray-600 hover:text-gray-800"
-            >
-              Home
-            </button>
-            <span className="text-gray-600">/</span>
-            <span className="text-blue-600">Data Management</span>
-          </div>
 
-          {/* Search Bar */}
-          <div className="mb-6 relative">
-            <input
-              type="text"
-              placeholder="Search table here..."
-              value={searchQuery}
-              onChange={handleSearch}
-              className="w-full max-w-md px-4 py-2 rounded-md border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
+      <main className="flex-1 flex flex-col overflow-hidden">
+        <div className="px-8 py-4 flex-shrink-0">
+          {/* Top Bar with Breadcrumb and Search */}
+          <div className="max-w-[1400px] mx-auto flex items-center justify-between ">
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  if (selectedTable) {
+                    setSelectedTable(null)
+                  } else {
+                    navigate("/dashboard")
+                  }
+                }}
+                className="text-gray-600 hover:text-gray-800 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M15 19L8 12L15 5"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {selectedTable ? 'Back to Tables' : 'Home'}
+              </button>
+              <span className="text-gray-400">/</span>
+              <span className="text-blue-600 font-medium">
+                {selectedTable ? selectedTable : 'Data Management'}
+              </span>
             </div>
-          </div>
 
-          {/* Loading State */}
-          {isLoading && (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            </div>
-          )}
+            {/* Search Bar - Only show when no table is selected */}
+            {!selectedTable && (
+              <div className="relative w-[300px]">
+                <input
+                  type="text"
+                  placeholder="Search table here..."
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            )}
+          </div>
 
           {/* Error State */}
           {error && (
-            <div className="text-red-600 text-center py-8">
-              {error}
+            <div className="max-w-[1400px] mx-auto">
+              <div className="text-red-600 p-4 text-center bg-red-50 rounded-lg mb-6">
+                {error}
+              </div>
             </div>
           )}
+        </div>
 
-          {/* Tables Grid */}
-          {!isLoading && !error && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-              {displayedTables.map((table, index) => (
-                <TableCard
-                  key={index}
-                  tableName={table.table_name}
-                  onClick={() => console.log(`Clicked table: ${table.table_name}`)}
-                />
-              ))}
-            </div>
-          )}
+        {/* Content Area */}
+        <div className="flex-1 overflow-hidden px-6">
+          <div className="max-w-[1600px] mx-auto h-full">
+            {selectedTable ? (
+              <div className="h-full flex flex-col">
+                <div className="flex-shrink-0 mb-4">
+                  <PageSizeSelector
+                    pageSize={pageSize}
+                    onPageSizeChange={handlePageSizeChange}
+                  />
+                </div>
+                <div className="flex-1 min-h-0 ">
+                  <DynamicTable
+                    key={tableKey}
+                    tableName={selectedTable}
+                    pageSize={pageSize}
+                    onRowEdit={handleRowEdit}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="h-full flex flex-col">
+                <div className="flex-1 overflow-auto">
+                  {/* Grid of Table Cards */}
+                  <div 
+                    ref={gridRef}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-max"
+                  >
+                    {displayedTables.map((table) => (
+                      <TableCard
+                        key={table.table_name}
+                        tableName={table.table_name}
+                        onClick={() => setSelectedTable(table.table_name)}
+                      />
+                    ))}
+                  </div>
+                </div>
 
-          {/* Pagination */}
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-          />
+                {/* Only show pagination if there are more tables than can fit */}
+                {totalPages > 1 && filteredTables.length > tablesPerPage && (
+                  <div className="flex-shrink-0 pt-3 border-t mt-3">
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={totalPages}
+                      onPageChange={handlePageChange}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </main>
     </div>

@@ -1,30 +1,39 @@
-import type React from 'react'
+import React from 'react';
 
 interface TableCardProps {
-  tableName: string
-  onClick?: () => void
+  tableName: string;
+  onClick: () => void;
 }
 
 export const TableCard: React.FC<TableCardProps> = ({ tableName, onClick }) => {
   return (
-    <div
+    <button
       onClick={onClick}
-      className="bg-white rounded-lg p-6 flex items-center justify-between hover:shadow-md transition-shadow cursor-pointer"
+      className="w-full bg-white border border-[#E5E7EB] rounded-lg p-4 hover:border-blue-500 transition-colors duration-200 text-left group"
     >
-      <span className="text-gray-900 font-medium">{tableName}</span>
-      <svg
-        className="w-5 h-5 text-blue-600"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M9 5l7 7-7 7"
-        />
-      </svg>
-    </div>
-  )
-}
+      <div className="flex items-center justify-between">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-[#111827] font-medium text-sm truncate group-hover:text-blue-600">
+            {tableName}
+          </h3>
+          <p className="text-[#6B7280] text-xs mt-1">
+            Click to view and manage data
+          </p>
+        </div>
+        <svg
+          className="w-5 h-5 text-[#6B7280] group-hover:text-blue-600 flex-shrink-0 ml-4"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+          <path
+            d="M7.5 3.75L13.75 10L7.5 16.25"
+            stroke="currentColor"
+            strokeWidth="1.67"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+    </button>
+  );
+};

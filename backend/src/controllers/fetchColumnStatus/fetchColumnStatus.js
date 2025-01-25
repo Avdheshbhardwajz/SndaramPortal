@@ -22,18 +22,20 @@ exports.fetchColumnStatus = async (req, res) => {
         // Execute the query
         const result = await client_update.query(queryFetch, [table_name]);
 
-        // Check if the row exists
+        // If no record exists, return default permissions (all columns editable)
         if (result.rows.length === 0) {
             return res.status(200).json({
-                success: false,
-                message: 'No matching record found for the provided table_name.',
+                success: true,
+                data: {},  // Empty object means all columns are editable by default
             });
         }
 
-        // Return column_list
+        // Return column_list with proper structure
+        const columnList = result.rows[0].column_list || {};
+        
         res.status(200).json({
             success: true,
-            data: result.rows[0].column_list,
+            data: columnList,
         });
     } catch (error) {
         console.error('Error:', error);

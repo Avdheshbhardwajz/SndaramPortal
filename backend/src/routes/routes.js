@@ -121,3 +121,35 @@ router.get("/admin-notification", verifyToken, authorize('admin'), getAdminNotif
 router.post('/highlight-cells', verifyToken,authorize('maker'), highlightCells);
 
 module.exports = router;
+
+
+// POST /highlight-cells - Manages cell highlighting in tables for makers// GET /maker-notification - Gets notifications for maker role
+// GET /checker-notification - Gets notifications for checker role
+// GET /admin-notification - Gets notifications for admin role// POST /addrow - Adds a new row to a table (requires maker role)
+// GET /fetchrowrequest - Gets pending row modification requests
+// POST /acceptrow - Approves a row modification request
+// POST /rejectrow - Rejects a row modification request
+// POST /rejectallrow - Bulk rejects multiple row requests
+// POST /acceptallrow - Bulk accepts multiple row requests// POST /addgroup - Creates a new table group
+// POST /addtable - Adds a table to an existing group
+// GET /getgrouplist - Lists all groups and their tables
+// POST /removegroup - Deletes an existing group
+// POST /removetable - Removes a table from a group// POST /columnPermission - Sets permissions for column access
+// POST /fetchcolumn - Retrieves column configuration
+// POST /fetchColumnDropDown - Gets dropdown configuration for columns
+// POST /updateColumnDropDown - Updates dropdown settings for columns
+// POST /fetchColumnStatus - Gets column status information
+// POST /fetchDropdownOptions - Retrieves available dropdown options// POST /approve - Approves a pending data modification request
+// POST /reject - Rejects a pending data modification request
+// POST /approveall - Bulk approves multiple pending requests
+// POST /rejectall - Bulk rejects multiple pending requests
+// GET /getallcheckerrequest - Lists all pending checker requests// GET /fetchchangetrackerdata - Retrieves audit log of data changes
+// POST /requestdata - Submits a request to modify data (maker role)
+// GET /table - Retrieves list of available tables
+// GET /tableData/:name - Fetches data from a specific table by name// POST /signup - Admin endpoint to create new users in the system
+// POST /send-otp - Initiates OTP authentication by sending code to user
+// POST /verify-otp - Validates OTP code entered by user to complete authentication
+// GET /users - Lists all users in the system
+// GET /users/:id - Retrieves specific user details by ID
+// PUT /users/:id - Admin endpoint to update user information
+// POST /isactive - Admin endpoint to toggle user account active status
