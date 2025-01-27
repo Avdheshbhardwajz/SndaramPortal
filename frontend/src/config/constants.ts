@@ -14,5 +14,7 @@ export const ENDPOINTS = {
   TABLE: {
     FETCH_COLUMN_STATUS: '/fetchColumnStatus',
     REQUEST_DATA: '/requestdata',
+    FETCH_DATA: '/tableData',
+    ADD_ROW: '/addrow',
   },
 }

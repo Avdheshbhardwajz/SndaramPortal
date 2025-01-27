@@ -38,6 +38,8 @@ interface UseTableDataReturn {
   handlePageChange: (page: number) => void;
   handleFilter: (filters: FilterConfig) => void;
   refresh: () => Promise<void>;
+  setPageSize: (size: number) => void;
+  totalRecords: number;
 }
 
 export const useTableData = ({ tableName, pageSize = 10 }: UseTableDataProps): UseTableDataReturn => {
@@ -53,45 +55,20 @@ export const useTableData = ({ tableName, pageSize = 10 }: UseTableDataProps): U
   const [filters, setFilters] = useState<FilterConfig>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  // In the future, this will be replaced with API calls
-  const sortData = (data: TableData[], config: SortConfig): TableData[] => {
-    if (!config.column || !config.direction) return data;
-
-    return [...data].sort((a, b) => {
-      const aValue = a[config.column!];
-      const bValue = b[config.column!];
-
-      if (aValue === bValue) return 0;
-      
-      const comparison = aValue < bValue ? -1 : 1;
-      return config.direction === 'asc' ? comparison : -comparison;
-    });
-  };
-
-  // In the future, this will be replaced with API calls
-  const filterData = (data: TableData[], query: string): TableData[] => {
-    if (!query) return data;
-
-    const searchLower = query.toLowerCase();
-    return data.filter(row => 
-      Object.values(row).some(value => 
-        String(value).toLowerCase().includes(searchLower)
-      )
-    );
-  };
+  const [currentPageSize, setCurrentPageSize] = useState(pageSize);
+  const [totalRecords, setTotalRecords] = useState(0);
 
   const loadTableData = async (page: number = 1) => {
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchTableData(tableName, page, pageSize);
+      const result = await fetchTableData(tableName, page, currentPageSize);
       setData(result.data);
       setCurrentPage(result.pagination.currentPage);
       setTotalPages(result.pagination.totalPages);
+      setTotalRecords(result.pagination.total);
       
       if (result.data.length > 0) {
-        // Get all columns from the first row, excluding internal fields
         const allColumns = Object.keys(result.data[0]);
         setColumns(allColumns.filter(col => 
           !col.startsWith('_') && 
@@ -102,96 +79,80 @@ export const useTableData = ({ tableName, pageSize = 10 }: UseTableDataProps): U
         ));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred while fetching table data');
+      console.error('Error loading table data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load table data');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Reload data when tableName or pageSize changes
   useEffect(() => {
-    loadTableData(currentPage);
-  }, [tableName, currentPage]);
+    loadTableData(1); // Reset to first page when these dependencies change
+  }, [tableName, currentPageSize]);
 
   const handleSort = (column: string) => {
-    setSortConfig(prevConfig => ({
-      column,
-      direction:
-        prevConfig.column === column
-          ? prevConfig.direction === 'asc'
-            ? 'desc'
-            : prevConfig.direction === 'desc'
-            ? null
-            : 'asc'
-          : 'asc',
-    }));
+    setSortConfig(prevConfig => {
+      if (prevConfig.column === column) {
+        if (prevConfig.direction === 'asc') {
+          return { column, direction: 'desc' };
+        }
+        return { column: null, direction: null };
+      }
+      return { column, direction: 'asc' };
+    });
   };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setCurrentPage(1);
-    // In the future, this will trigger an API call with the search query
+    setCurrentPage(1); // Reset to first page when searching
+    loadTableData(1);
   };
 
-  const handlePageChange = (page: number) => {
+  const handlePageChange = async (page: number) => {
     setCurrentPage(page);
-    // In the future, this will be handled by the API with proper pagination
+    await loadTableData(page);
   };
 
-  const handleFilter = (filters: FilterConfig) => {
-    setFilters(filters);
-    setCurrentPage(1);
+  const handleFilter = (newFilters: FilterConfig) => {
+    setFilters(newFilters);
+    setCurrentPage(1); // Reset to first page when filtering
+    loadTableData(1);
   };
+
+  const setPageSize = (size: number) => {
+    setCurrentPageSize(size);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
+  const refresh = () => loadTableData(currentPage);
 
   const processedData = useMemo(() => {
-    let result = data;
-    
-    // Apply search filter
-    result = filterData(result, searchQuery);
-    
-    // Apply column filters
-    result = result.filter(row => {
-      return Object.entries(filters).every(([column, condition]) => {
-        const value = row[column];
-        const filterValue = condition.value;
+    let result = [...data];
 
-        switch (condition.operator) {
-          case 'equals':
-            return value === filterValue;
-          case 'notEqual':
-            return value !== filterValue;
-          case 'contains':
-            return String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-          case 'notContains':
-            return !String(value).toLowerCase().includes(String(filterValue).toLowerCase());
-          case 'startsWith':
-            return String(value).toLowerCase().startsWith(String(filterValue).toLowerCase());
-          case 'endsWith':
-            return String(value).toLowerCase().endsWith(String(filterValue).toLowerCase());
-          case 'greaterThan':
-            return value > filterValue;
-          case 'greaterThanOrEqual':
-            return value >= filterValue;
-          case 'lessThan':
-            return value < filterValue;
-          case 'lessThanOrEqual':
-            return value <= filterValue;
-          case 'inRange':
-            return value >= filterValue && value <= condition.valueTo;
-          default:
-            return true;
-        }
-      });
-    });
-    
+    // Apply search
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      result = result.filter(row =>
+        Object.values(row).some(value =>
+          String(value).toLowerCase().includes(searchLower)
+        )
+      );
+    }
+
     // Apply sorting
-    result = sortData(result, sortConfig);
-    
-    return result;
-  }, [data, searchQuery, sortConfig, filters]);
+    if (sortConfig.column && sortConfig.direction) {
+      result.sort((a, b) => {
+        const aValue = a[sortConfig.column!];
+        const bValue = b[sortConfig.column!];
+        if (aValue === bValue) return 0;
+        const comparison = aValue < bValue ? -1 : 1;
+        return sortConfig.direction === 'asc' ? comparison : -comparison;
+      });
+    }
 
-  const refresh = async () => {
-    await loadTableData(currentPage);
-  };
+    return result;
+  }, [data, searchQuery, sortConfig]);
 
   return {
     data,
@@ -208,5 +169,7 @@ export const useTableData = ({ tableName, pageSize = 10 }: UseTableDataProps): U
     handlePageChange,
     handleFilter,
     refresh,
+    setPageSize,
+    totalRecords,
   };
 };

@@ -28,6 +28,17 @@ interface EditRowResponse {
   error?: string
 }
 
+export interface AddRowRequest {
+  table_name: string;
+  row_data: Record<string, any>;
+}
+
+export interface AddRowResponse {
+  success: boolean;
+  message: string;
+  request_id?: string;
+}
+
 export const fetchTableData = async (
   tableName: string,
   page: number = 1,
@@ -90,6 +101,36 @@ export const requestRowEdit = async (editData: EditRowRequest): Promise<EditRowR
     return data
   } catch (error) {
     console.error('Error submitting edit request:', error)
+    throw error
+  }
+}
+
+export const addRow = async (request: AddRowRequest): Promise<AddRowResponse> => {
+  const token = localStorage.getItem('token')
+  
+  if (!token) {
+    throw new Error('No authentication token found')
+  }
+
+  try {
+    const response = await fetch(`${API_URL}${ENDPOINTS.TABLE.ADD_ROW}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(request)
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to add row')
+    }
+
+    return data
+  } catch (error) {
+    console.error('Error adding row:', error)
     throw error
   }
 }

@@ -12,37 +12,52 @@ export const usePagination = ({
   siblingCount = 1 
 }: UsePaginationProps) => {
   return useMemo(() => {
-    const range = [];
-    const rangeWithDots = [];
-
-    // Always include first page
-    range.push(1);
-
-    for (let i = currentPage - siblingCount; i <= currentPage + siblingCount; i++) {
-      if (i > 1 && i < totalPages) {
-        range.push(i);
+    const range = []
+    
+    // Calculate the range of pages to show
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1)
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages)
+    
+    // Should we show dots on left side?
+    const shouldShowLeftDots = leftSiblingIndex > 2
+    // Should we show dots on right side?
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 1
+    
+    // Always show first page
+    range.push(1)
+    
+    // Add left dots if needed
+    if (shouldShowLeftDots) {
+      range.push('...')
+    } else if (leftSiblingIndex > 1) {
+      // If we're not showing dots but there are pages between 1 and leftSiblingIndex
+      for (let i = 2; i < leftSiblingIndex; i++) {
+        range.push(i)
       }
     }
-
-    // Always include last page
-    if (totalPages !== 1) {
-      range.push(totalPages);
-    }
-
-    // Add the page numbers to final array with dots
-    let l;
-    for (const i of range) {
-      if (l) {
-        if (i - l === 2) {
-          rangeWithDots.push(l + 1);
-        } else if (i - l !== 1) {
-          rangeWithDots.push('...');
-        }
+    
+    // Add the sibling pages
+    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+      if (i !== 1 && i !== totalPages) {
+        range.push(i)
       }
-      rangeWithDots.push(i);
-      l = i;
     }
-
-    return rangeWithDots;
-  }, [currentPage, totalPages, siblingCount]);
+    
+    // Add right dots if needed
+    if (shouldShowRightDots) {
+      range.push('...')
+    } else if (rightSiblingIndex < totalPages) {
+      // If we're not showing dots but there are pages between rightSiblingIndex and totalPages
+      for (let i = rightSiblingIndex + 1; i < totalPages; i++) {
+        range.push(i)
+      }
+    }
+    
+    // Always show last page if it's not already included
+    if (totalPages > 1) {
+      range.push(totalPages)
+    }
+    
+    return range
+  }, [currentPage, totalPages, siblingCount])
 }

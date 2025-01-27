@@ -1,15 +1,28 @@
 import React, { useState, useEffect } from 'react'
 import { X } from 'lucide-react'
+import { toast } from 'react-toastify'
 
 interface EditRowDrawerProps {
   isOpen: boolean
   onClose: () => void
   row: Record<string, any> | null
   columns: string[]
-  onSave: (updatedRow: Record<string, any>) => void
+  onSave: (updatedRow: Record<string, any>) => Promise<void>
   mode: 'edit' | 'add'
   isColumnEditable: (column: string) => boolean
 }
+
+// System columns that should not be shown in add mode
+const SYSTEM_COLUMNS = [
+  'id',
+  'status',
+  'created_at',
+  'updated_at',
+  'maker',
+  'admin',
+  'comments',
+  'request_id'
+]
 
 export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
   isOpen,
@@ -21,10 +34,11 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
   isColumnEditable
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({})
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
-    if (row) {
-      // Only include editable columns in form data
+    if (mode === 'edit' && row) {
+      // For edit mode, only include editable columns
       const editableData = columns.reduce((acc, column) => {
         if (isColumnEditable(column)) {
           acc[column] = row[column] || ''
@@ -33,16 +47,19 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
       }, {} as Record<string, any>)
       setFormData(editableData)
     } else {
-      // For new rows, only include editable columns
+      // For add mode, include all columns except system columns
       const newRowData = columns.reduce((acc, column) => {
-        if (isColumnEditable(column)) {
+        if (!column.startsWith('_') && 
+            !SYSTEM_COLUMNS.includes(column.toLowerCase()) &&
+            !column.endsWith('_sk') && 
+            !column.endsWith('_id')) {
           acc[column] = ''
         }
         return acc
       }, {} as Record<string, any>)
       setFormData(newRowData)
     }
-  }, [row, columns, isColumnEditable])
+  }, [row, columns, isColumnEditable, mode])
 
   const handleChange = (column: string, value: string) => {
     setFormData(prev => ({
@@ -51,20 +68,69 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
     }))
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Preserve non-editable values from original row
-    const updatedRow = {
-      ...row,
-      ...formData
+    
+    // Basic validation
+    const emptyFields = Object.entries(formData)
+      .filter(([_, value]) => value === '')
+      .map(([key]) => key)
+
+    if (emptyFields.length > 0) {
+      toast.error(`Please fill in the following fields: ${emptyFields.join(', ')}`)
+      return
     }
-    onSave(updatedRow)
+
+    try {
+      setIsSubmitting(true)
+      
+      // For edit mode, preserve non-editable values from original row
+      const finalData = mode === 'edit' && row 
+        ? { ...row, ...formData }
+        : formData
+
+      await onSave(finalData)
+      onClose()
+    } catch (error) {
+      console.error('Error submitting form:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to save changes')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   if (!isOpen) return null
 
-  // Get only editable columns
-  const editableColumns = columns.filter(column => isColumnEditable(column))
+  // Get columns to display based on mode
+  const displayColumns = mode === 'edit' 
+    ? columns.filter(column => isColumnEditable(column))
+    : columns.filter(column => 
+        !column.startsWith('_') && 
+        !SYSTEM_COLUMNS.includes(column.toLowerCase()) &&
+        !column.endsWith('_sk') && 
+        !column.endsWith('_id')
+      )
+
+  // Function to determine input type based on column name
+  const getInputType = (column: string): string => {
+    const columnLower = column.toLowerCase()
+    if (columnLower.includes('date') || columnLower.endsWith('_at')) {
+      return 'date'
+    }
+    if (columnLower.includes('email')) {
+      return 'email'
+    }
+    if (columnLower.includes('phone') || columnLower.includes('mobile')) {
+      return 'tel'
+    }
+    if (columnLower.includes('amount') || 
+        columnLower.includes('price') || 
+        columnLower.includes('quantity') ||
+        columnLower.includes('number')) {
+      return 'number'
+    }
+    return 'text'
+  }
 
   return (
     <div className="fixed inset-0 overflow-hidden z-50">
@@ -79,14 +145,17 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
                 <div className="flex items-start justify-between space-x-3">
                   <div className="space-y-1">
                     <h2 className="text-lg font-medium text-gray-900">
-                      {mode === 'edit' ? 'Edit Row' : 'Add Row'}
+                      {mode === 'edit' ? 'Edit Row' : 'Add New Row'}
                     </h2>
                     <p className="text-sm text-gray-500">
-                      Only editable fields are shown
+                      {mode === 'edit' 
+                        ? 'Only editable fields are shown'
+                        : 'Fill in all required fields'}
                     </p>
                   </div>
                   <div className="h-7 flex items-center">
                     <button
+                      type="button"
                       onClick={onClose}
                       className="text-gray-400 hover:text-gray-500"
                     >
@@ -99,21 +168,21 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
               {/* Form */}
               <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto">
                 <div className="px-4 py-6 space-y-6 sm:px-6">
-                  {editableColumns.map(column => (
+                  {displayColumns.map(column => (
                     <div key={column}>
                       <label
                         htmlFor={column}
-                        className="block text-sm font-medium text-gray-700 capitalize"
+                        className="block text-sm font-medium text-gray-700"
                       >
                         {column.split('_').join(' ')}
                       </label>
                       <input
-                        type="text"
+                        type={getInputType(column)}
                         name={column}
                         id={column}
                         value={formData[column] || ''}
-                        onChange={e => handleChange(column, e.target.value)}
-                        className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                        onChange={(e) => handleChange(column, e.target.value)}
+                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
                       />
                     </div>
                   ))}
@@ -123,16 +192,17 @@ export const EditRowDrawer: React.FC<EditRowDrawerProps> = ({
                 <div className="flex-shrink-0 px-4 py-4 flex justify-end border-t border-gray-200">
                   <button
                     type="button"
-                    className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                     onClick={onClose}
+                    className="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="ml-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    disabled={isSubmitting}
+                    className="ml-4 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                   >
-                    Save
+                    {isSubmitting ? 'Saving...' : 'Save'}
                   </button>
                 </div>
               </form>

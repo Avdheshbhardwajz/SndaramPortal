@@ -8,6 +8,8 @@ import { TableColumnHeader } from './table/TableColumnHeader'
 import { TableBody } from './table/TableBody'
 import type { FilterCondition } from './TableFilter'
 import { requestRowEdit } from '../services/tableDataService'
+import { addRow } from '../services/tableDataService'
+import { toast } from 'react-toastify'
 
 interface DynamicTableProps {
   tableName: string
@@ -22,91 +24,91 @@ const getColumnType = (value: any): 'text' | 'number' | 'date' => {
   return 'text'
 }
 
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+
 export const DynamicTable: React.FC<DynamicTableProps> = ({
   tableName,
-  pageSize,
+  pageSize: initialPageSize = 10,
   onRowEdit
 }) => {
+  const [editMode, setEditMode] = useState<'edit' | 'add'>('edit')
+  const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(null)
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filterColumn, setFilterColumn] = useState<string | null>(null)
+  const [activeFilters, setActiveFilters] = useState<Record<string, any>>({})
+  const [localPageSize, setLocalPageSize] = useState(initialPageSize)
+
   const {
+    data,
     processedData,
     columns,
+    isLoading,
+    error,
     currentPage,
     totalPages,
-    isLoading: isDataLoading,
-    error: dataError,
     sortConfig,
+    filters,
     handleSort,
     handleSearch,
     handlePageChange,
     handleFilter,
     refresh: refreshData,
-  } = useTableData({ tableName, pageSize })
+    setPageSize,
+    totalRecords
+  } = useTableData({ tableName, pageSize: localPageSize })
 
   const {
     isColumnEditable,
     getEditableColumns,
-    isLoading: isPermissionsLoading,
-    error: permissionsError
+    error: permissionsError,
   } = useColumnPermissions(tableName)
 
-  const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeFilters, setActiveFilters] = useState<Record<string, FilterCondition>>({})
-  const [filterColumn, setFilterColumn] = useState<string | null>(null)
-  const [isAddMode, setIsAddMode] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const handleEditClick = (row: Record<string, any>) => {
-    setSelectedRow(row)
-    setIsAddMode(false)
+  const handleAddClick = () => {
+    setEditMode('add')
+    setSelectedRow(null)
     setIsDrawerOpen(true)
   }
 
-  const handleAddClick = () => {
-    setSelectedRow({})
-    setIsAddMode(true)
+  const handleEditClick = (row: Record<string, any>) => {
+    setEditMode('edit')
+    setSelectedRow(row)
     setIsDrawerOpen(true)
   }
 
   const handleDrawerClose = () => {
-    setSelectedRow(null)
-    setIsAddMode(false)
     setIsDrawerOpen(false)
-    setError(null)
+    setSelectedRow(null)
   }
 
-  const handleRowSave = async (updatedRow: Record<string, any>) => {
+  const handleSave = async (updatedRow: Record<string, any>) => {
     try {
-      setError(null)
+      if (editMode === 'edit' && selectedRow) {
+        await requestRowEdit({
+          table_name: tableName,
+          row_id: selectedRow.id,
+          old_values: selectedRow,
+          new_values: updatedRow,
+          table_id: tableName
+        })
+      } else if (editMode === 'add') {
+        await addRow({
+          table_name: tableName,
+          row_data: updatedRow
+        })
+      }
       
-      if (!selectedRow) {
-        throw new Error('No row selected for editing')
-      }
-
-      const editData = {
-        table_name: tableName,
-        row_id: String(selectedRow.id || selectedRow[`${tableName}_sk`] || selectedRow[`${tableName}_id`]),
-        old_values: selectedRow,
-        new_values: updatedRow,
-        table_id: tableName
-      }
-
-      const response = await requestRowEdit(editData)
-
-      if (response.success) {
-        if (onRowEdit) {
-          onRowEdit(updatedRow)
-        }
-        handleDrawerClose()
-        // Refresh the table data to show the pending status
-        refreshData()
-      } else {
-        setError(response.message || 'Failed to submit edit request')
-      }
-    } catch (err) {
-      console.error('Error saving row:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save changes')
+      // Show success message
+      toast.success(editMode === 'edit' ? 'Row edit request submitted successfully' : 'Row add request submitted successfully')
+      
+      // Refresh the table data
+      await refreshData()
+      
+      // Close the drawer
+      handleDrawerClose()
+    } catch (error) {
+      console.error('Error saving row:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to save row')
     }
   }
 
@@ -126,11 +128,11 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     setFilterColumn(null)
   }
 
-  if (isDataLoading || isPermissionsLoading) {
+  if (isLoading) {
     return <div>Loading...</div>
   }
 
-  if (dataError || permissionsError) {
+  if (error || permissionsError) {
     return <div>Error loading table data</div>
   }
 
@@ -140,7 +142,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   const displayColumns = columns
 
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white rounded-lg shadow flex flex-col">
       <TableHeader
         onSearch={handleSearch}
         onAddClick={handleAddClick}
@@ -148,12 +150,12 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         setSearchQuery={setSearchQuery}
       />
 
-      <div className="overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+      <div className="overflow-x-auto" style={{ maxHeight: 'calc(100vh - 300px)', overflowY: 'auto' }}>
         <table className="min-w-full divide-y divide-gray-200">
-          <thead>
+          <thead className="bg-gray-50 sticky top-0 z-10">
             <tr>
               {/* Action Column Header */}
-              <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-10">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-20 bg-gray-50">
                 Action
               </th>
               {displayColumns.map((column) => (
@@ -181,15 +183,43 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         </table>
       </div>
 
-      <div className="px-6 py-4 flex justify-between items-center border-t border-gray-200">
-        <div className="text-sm text-gray-500">
-          Showing {processedData.length} results
+      <div className="mt-auto px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-gray-200 bg-white">
+        <div className="flex items-center gap-4 w-full sm:w-auto">
+          <div className="text-sm text-gray-500 whitespace-nowrap">
+            Showing {Math.min((currentPage - 1) * localPageSize + 1, processedData.length)} - {Math.min(currentPage * localPageSize, processedData.length)} of {totalRecords} results
+          </div>
+          <div className="flex items-center gap-2">
+            <label htmlFor="pageSize" className="text-sm text-gray-500 whitespace-nowrap">
+              Rows per page:
+            </label>
+            <select
+              id="pageSize"
+              value={localPageSize}
+              onChange={(e) => {
+                const newPageSize = Number(e.target.value)
+                setLocalPageSize(newPageSize)
+                setPageSize(newPageSize)
+              }}
+              className="block w-24 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <option key={size} value={size}>
+                  {size}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+        
+        {totalPages > 1 && (
+          <div className="flex items-center justify-end w-full sm:w-auto">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={handlePageChange}
+            />
+          </div>
+        )}
       </div>
 
       <EditRowDrawer
@@ -197,16 +227,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         onClose={handleDrawerClose}
         row={selectedRow}
         columns={displayColumns}
-        onSave={handleRowSave}
-        mode={isAddMode ? 'add' : 'edit'}
+        onSave={handleSave}
+        mode={editMode}
         isColumnEditable={isColumnEditable}
       />
-      
-      {error && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
     </div>
   )
 }
