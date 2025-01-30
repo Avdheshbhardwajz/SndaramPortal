@@ -17,7 +17,7 @@ export const ConfigurationTabs: React.FC<ConfigurationTabsProps> = ({
   ];
 
   return (
-    <div className="flex gap-2 mb-6 mt-4 p-2">
+    <div className="flex gap-4 mb-2 p-2 ">
       {tabs.map((tab) => (
         <button
           key={tab.id}

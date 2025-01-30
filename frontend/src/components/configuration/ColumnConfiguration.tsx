@@ -1,43 +1,14 @@
 import React, { useState, useEffect } from 'react';
-//import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/Dialog';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { X } from 'lucide-react';
-import axios, { AxiosError } from 'axios';
-import { config } from "../../config/env";
+import { columnConfigService, ColumnStatus, ApiError } from '../../services/columnConfigService';
+//import { config } from "../../config/env";
 import { Pagination } from '../Pagination';
 import selectTable from "../../assets/images/select-table.svg";
-
-type AlertType = 'error' | 'success' | 'info';
-
-interface ColumnStatus {
-  column_name: string;
-  column_status: 'editable' | 'non-editable';
-}
-
-interface AlertState {
-  show: boolean;
-  message: string;
-  type: AlertType;
-}
-
-interface ColumnResponse {
-  success: boolean;
-  columns?: string[];
-  message?: string;
-}
-
-interface StatusResponse {
-  success: boolean;
-  column_list?: ColumnStatus[];
-  message?: string;
-}
-
-interface ErrorResponse {
-  message?: string;
-}
+import { useAlert } from '../../hooks/useAlert';
 
 export default function ColumnConfigurator() {
   const [selectedTable, setSelectedTable] = useState("");
@@ -48,14 +19,10 @@ export default function ColumnConfigurator() {
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
-  const [alert, setAlert] = useState<AlertState>({
-    show: false,
-    message: "",
-    type: "info",
-  });
+  const { alert, showAlert } = useAlert();
 
   useEffect(() => {
-    fetchTables();
+    void fetchTables();
   }, []);
 
   useEffect(() => {
@@ -64,92 +31,62 @@ export default function ColumnConfigurator() {
     }
   }, [selectedTable]);
 
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      throw new Error('No authentication token found');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    };
-  };
-
   const fetchTables = async () => {
     try {
-      const response = await axios.get<{ success: boolean; tables: { table_name: string }[] }>(
-        `${config.apiBaseUrl}/table`,
-        { headers: getAuthHeaders() }
-      );
-      if (response.data.success) {
-        setTables(response.data.tables.map(t => t.table_name));
+      const response = await columnConfigService.fetchTables();
+      if (response.success) {
+        setTables(response.tables.map(t => t.table_name));
       } else {
-        showAlertMessage('Failed to fetch tables', 'error');
+        showAlert(response.message || 'Failed to fetch tables', 'error');
       }
     } catch (error) {
-      console.error('Error fetching tables:', error);
-      showAlertMessage('Failed to fetch tables', 'error');
+      const message = error instanceof ApiError ? error.message : 'Failed to fetch tables';
+      showAlert(message, 'error');
     }
   };
 
   const fetchColumns = async (tableName: string) => {
     try {
       setLoading(true);
-      const columnsResponse = await axios.post<ColumnResponse>(
-        `${config.apiBaseUrl}/fetchcolumn`,
-        { table_name: tableName },
-        { headers: getAuthHeaders() }
-      );
+      const columnsResponse = await columnConfigService.fetchColumns(tableName);
 
-      if (!columnsResponse.data.success || !columnsResponse.data.columns) {
-        showAlertMessage(
-          `Failed to fetch columns: ${columnsResponse.data.message || ''}`,
-          'error'
-        );
+      if (!columnsResponse.success || !columnsResponse.columns) {
+        showAlert(columnsResponse.message || 'Failed to fetch columns', 'error');
         return;
       }
 
-      const allColumns = columnsResponse.data.columns.map((col: string) => ({
+      const allColumns: ColumnStatus[] = columnsResponse.columns.map((col: string) => ({
         column_name: col,
         column_status: 'non-editable' as 'editable' | 'non-editable',
       }));
 
       try {
-        const statusResponse = await axios.post<StatusResponse>(
-          `${config.apiBaseUrl}/ColumnPermission`,
-          {
-            table_name: tableName,
-            action: 'get',
-          },
-          { headers: getAuthHeaders() }
-        );
+        const statusResponse = await columnConfigService.getColumnStatus(tableName);
 
-        if (statusResponse.data.success && statusResponse.data.column_list) {
+        if (statusResponse.success && statusResponse.column_list) {
           const existingStatuses = new Map(
-            statusResponse.data.column_list.map((col) => [
+            statusResponse.column_list.map((col) => [
               col.column_name,
               col.column_status,
             ])
           );
 
-          allColumns.forEach((col) => {
+          allColumns.forEach((col: ColumnStatus) => {
             const status = existingStatuses.get(col.column_name);
-            if (status) {
+            if (status && (status === 'editable' || status === 'non-editable' || status === 'readonly')) {
               col.column_status = status;
             }
           });
         }
       } catch (error) {
-        console.error('Failed to fetch column statuses:', error);
+        const message = error instanceof ApiError ? error.message : 'Failed to fetch column statuses';
+        showAlert(message, 'error');
       }
 
       setColumns(allColumns);
     } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      showAlertMessage(
-        axiosError.response?.data?.message || 'Failed to fetch columns',
-        'error'
-      );
+      const message = error instanceof ApiError ? error.message : 'Failed to fetch columns';
+      showAlert(message, 'error');
     } finally {
       setLoading(false);
     }
@@ -168,42 +105,20 @@ export default function ColumnConfigurator() {
           : col
       );
 
-      const response = await axios.post(
-        `${config.apiBaseUrl}/ColumnPermission`,
-        {
-          table_name: selectedTable,
-          column_list: updatedColumns,
-          action: 'update',
-        },
-        { headers: getAuthHeaders() }
-      );
+      const response = await columnConfigService.updateColumnStatus(selectedTable, updatedColumns);
 
-      if (response.data.success) {
+      if (response.success) {
         setColumns(updatedColumns);
-        showAlertMessage('Column status updated successfully', 'success');
+        showAlert('Column status updated successfully', 'success');
       } else {
-        showAlertMessage(
-          response.data.message || 'Failed to update column status',
-          'error'
-        );
+        showAlert(response.message || 'Failed to update column status', 'error');
       }
     } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      showAlertMessage(
-        axiosError.response?.data?.message || 'Failed to update column status',
-        'error'
-      );
+      const message = error instanceof ApiError ? error.message : 'Failed to update column status';
+      showAlert(message, 'error');
     } finally {
       setLoading(false);
     }
-  };
-
-  const showAlertMessage = (message: string, type: AlertType) => {
-    setAlert({ show: true, message, type });
-    setTimeout(
-      () => setAlert({ show: false, message: '', type: 'info' }),
-      3000
-    );
   };
 
   // Filter tables based on search query
@@ -282,7 +197,7 @@ export default function ColumnConfigurator() {
         ) : !selectedTable ? (
           <div className="flex flex-col items-center justify-center min-h-[400px] gap-4">
             <img 
-            src={selectTable} 
+              src={selectTable} 
               alt="Select Table" 
               className="w-48 h-48 opacity-50"
             />
@@ -309,7 +224,7 @@ export default function ColumnConfigurator() {
               {currentColumns.map((column) => (
                 <div
                   key={column.column_name}
-                  className="flex items-center justify-between py-2 px-4 bg-white rounded-lg border border-gray-100"
+                  className="flex items-center justify-between py-6 px-4 bg-white rounded-lg border border-gray-100"
                 >
                   <span className="text-gray-700 text-sm truncate">{column.column_name}</span>
                   <div className="flex items-center gap-2 flex-shrink-0">
