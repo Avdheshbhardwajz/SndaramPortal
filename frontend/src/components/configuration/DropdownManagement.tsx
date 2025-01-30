@@ -96,21 +96,31 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
   const fetchColumns = async (tableName: string) => {
     try {
       setLoading(true);
-      const response = await axios.post(
+      const response = await axios.post<{
+        success: boolean;
+        columns: string[];
+        message?: string;
+      }>(
         `http://localhost:8080/fetchcolumn`,
         { table_name: tableName },
         { headers: getAuthHeaders() }
       );
 
-      if (response.data.success && response.data.columns) {
-        console.log("Fetched columns:", response.data.columns); // Debug log
+      console.log("Fetch columns response:", response.data); // Debug log
+
+      if (response.data.success && Array.isArray(response.data.columns)) {
         setColumns(response.data.columns);
+        if (response.data.columns.length === 0) {
+          showAlert("No columns found for this table", "info");
+        }
       } else {
-        showAlert("Failed to fetch columns", "error");
+        showAlert(response.data.message || "Failed to fetch columns", "error");
+        setColumns([]);
       }
     } catch (error) {
       console.error("Error fetching columns:", error);
       showAlert("Error fetching columns", "error");
+      setColumns([]);
     } finally {
       setLoading(false);
     }
@@ -225,6 +235,8 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
 
   const handleTableSelect = (table: string) => {
     setSelectedTable(table);
+    setSelectedColumn(""); // Reset column selection
+    setOptions([]); // Reset options
     setDialogOpen(false);
   };
 
@@ -309,7 +321,7 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
               <Select
                 value={selectedColumn}
                 onValueChange={(value) => {
-                  console.log("Selected column:", value); // Debug log
+                  console.log("Selected column:", value);
                   setSelectedColumn(value);
                 }}
               >
@@ -327,9 +339,9 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
                       </SelectItem>
                     ))
                   ) : (
-                    <SelectItem value="" disabled>
+                    <div className="px-2 py-4 text-sm text-gray-500 text-center">
                       No columns available
-                    </SelectItem>
+                    </div>
                   )}
                 </SelectContent>
               </Select>
