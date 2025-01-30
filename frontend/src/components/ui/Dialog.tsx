@@ -1,41 +1,66 @@
-import React from 'react'
+import type React from "react"
+import type { ReactNode } from "react"
 
 interface DialogProps {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  children: ReactNode
 }
 
-export const Dialog: React.FC<DialogProps> = ({ isOpen, onClose, title, children }) => {
-  if (!isOpen) return null
-
+export const Dialog: React.FC<DialogProps> = ({ open, children }) => {
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex min-h-screen items-center justify-center px-4 pt-4 pb-20 text-center sm:block sm:p-0">
-        <div className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" onClick={onClose} />
-
-        <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
-          <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between border-b border-gray-200 pb-4 mb-4">
-              <h3 className="text-lg font-medium leading-6 text-gray-900">
-                {title}
-              </h3>
-              <button
-                type="button"
-                className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none"
-                onClick={onClose}
-              >
-                <span className="sr-only">Close</span>
-                <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            {children}
-          </div>
-        </div>
-      </div>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center ${open ? "block" : "hidden"}`}>
+      <div className="fixed inset-0 bg-blue-500/20 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative bg-white rounded-lg">{children}</div>
     </div>
   )
+}
+
+interface DialogContentProps {
+  children: ReactNode
+  className?: string
+}
+
+export const DialogContent: React.FC<DialogContentProps> = ({ children, className }) => {
+  return <div className={className}>{children}</div>
+}
+
+interface DialogHeaderProps {
+  children: ReactNode
+  className?: string
+}
+
+export const DialogHeader: React.FC<DialogHeaderProps> = ({ children, className }) => {
+  return <div className={className + " flex items-center justify-between border-b pb-4"}>{children}</div>
+}
+
+interface DialogTitleProps {
+  children: ReactNode
+  className?: string
+}
+
+export const DialogTitle: React.FC<DialogTitleProps> = ({ children, className }) => {
+  return <h2 className={className + " text-lg font-medium"}>{children}</h2>
+}
+
+interface DialogDescriptionProps {
+  children: ReactNode
+  className?: string
+}
+
+export const DialogDescription: React.FC<DialogDescriptionProps> = ({ children, className }) => {
+  return (
+    <div className={`text-sm text-gray-500 ${className || ''}`}>
+      {children}
+    </div>
+  )
+}
+
+interface DialogFooterProps {
+  children: ReactNode
+  className?: string
+}
+
+export const DialogFooter: React.FC<DialogFooterProps> = ({ children, className }) => {
+  return <div className={className}>{children}</div>
 }

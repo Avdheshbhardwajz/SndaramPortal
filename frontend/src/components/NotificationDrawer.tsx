@@ -38,7 +38,12 @@ const NotificationCard = ({ notification }: { notification: Notification }) => {
   }
 
   const formatDate = (dateString: string) => {
-    return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Unknown date'
+    }
   }
 
   const getChangesData = () => {
@@ -48,7 +53,6 @@ const NotificationCard = ({ notification }: { notification: Notification }) => {
         new_data: notification.new_data || {},
       }
     }
-    // For add_row type, show the added data as new_data
     return {
       old_data: {},
       new_data: notification.data || {},
@@ -93,15 +97,15 @@ const NotificationCard = ({ notification }: { notification: Notification }) => {
 export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   isOpen,
   onClose,
-  notifications,
+  notifications = [],
 }) => {
-  const groupedNotifications = {
-    all: notifications,
-    approved: notifications.filter(n => n.status.toLowerCase() === 'approved'),
-    rejected: notifications.filter(n => n.status.toLowerCase() === 'rejected'),
-  }
-
   const [activeTab, setActiveTab] = React.useState<'all' | 'approved' | 'rejected'>('all')
+
+  const groupedNotifications = React.useMemo(() => ({
+    all: notifications,
+    approved: notifications.filter(n => n?.status?.toLowerCase() === 'approved'),
+    rejected: notifications.filter(n => n?.status?.toLowerCase() === 'rejected'),
+  }), [notifications])
 
   return (
     <Drawer isOpen={isOpen} onClose={onClose} title="Notifications">
@@ -138,7 +142,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         </button>
       </div>
       <div className="divide-y divide-gray-100">
-        {groupedNotifications[activeTab].map((notification) => (
+        {(groupedNotifications[activeTab] || []).map((notification) => (
           <NotificationCard
             key={notification.request_id}
             notification={notification}

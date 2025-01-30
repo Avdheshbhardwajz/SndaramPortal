@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react'
-import { IconButton } from './ui/IconButton'
-import { Avatar } from './ui/Avatar'
-import { Badge } from './ui/Badge'
-import { colors } from '../constants/colors'
-import { sizes } from '../constants/sizes'
-import { NotificationDrawer } from './NotificationDrawer'
-import { notificationService } from '../services/notificationService'
+import type React from "react"
+import { useState, useEffect } from "react"
+import { IconButton } from "./ui/IconButton"
+import { Avatar } from "./ui/Avatar"
+import { Bell, ChevronDown } from "lucide-react"
+import { NotificationDrawer } from "./NotificationDrawer"
+import { notificationService } from "../services/notificationService"
+import logo from "../assets/images/Logo-Full.svg"
 
 interface HeaderProps {
   firstName: string
@@ -13,87 +13,91 @@ interface HeaderProps {
   onLogout: () => void
 }
 
-const NotificationIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-    <path d="M16.0705 7.39016C16.0705 8.80616 16.4865 9.61216 17.2335 10.4232C17.8455 11.0772 18.0005 11.9312 18.0005 12.8792C18.0005 13.8272 17.6255 14.7042 16.9105 15.3362C16.0705 16.0772 14.9815 16.5072 13.8145 16.5552C12.2515 16.6292 10.6885 16.6772 9.09849 16.6772C7.50849 16.6772 5.94549 16.6552 4.38249 16.5552C3.21549 16.5072 2.12649 16.0772 1.28649 15.3362C0.571488 14.7042 0.196488 13.8272 0.196488 12.8792C0.196488 11.9312 0.351488 11.0772 0.963488 10.4232C1.73249 9.61216 2.12649 8.80616 2.12649 7.39016V7.12216C2.12649 5.51816 2.54849 4.34816 3.41649 3.26216C4.68649 1.68616 6.74049 0.752158 8.98449 0.752158H9.21249C11.5025 0.752158 13.6025 1.70816 14.8725 3.32816C15.7185 4.39216 16.0935 5.54016 16.0935 7.12216L16.0705 7.39016ZM6.27349 18.5232C6.27349 18.0452 6.67549 17.7292 7.13149 17.7292H11.0655C11.5215 17.7292 11.9235 18.0452 11.9235 18.5232C11.9235 19.0012 11.5215 19.3172 11.0655 19.3172H7.13149C6.67549 19.3172 6.27349 19.0012 6.27349 18.5232Z" fill="currentColor"/>
-  </svg>
-)
-
-const ChevronDownIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
-
-const LogoutIcon = () => (
-  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mr-3">
-    <path d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
-  </svg>
-)
-
 export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => {
   const [showLogout, setShowLogout] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications, setNotifications] = useState([])
+  const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  
+
   useEffect(() => {
     const fetchNotifications = async () => {
-      const userRole = role.toLowerCase() as 'maker' | 'checker' | 'admin'
-      const data = await notificationService.fetchNotifications(userRole)
-      setNotifications(data)
-      setUnreadCount(data.length)
+      try {
+        const userRole = role.toLowerCase() as "maker" | "checker" | "admin"
+        const data = await notificationService.fetchNotifications(userRole)
+        setNotifications(data || [])
+        setUnreadCount((data || []).length)
+      } catch (error) {
+        console.error('Error fetching notifications:', error)
+        setNotifications([])
+        setUnreadCount(0)
+      }
     }
-    
+
     fetchNotifications()
   }, [role])
 
-  const handleLogoutClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    onLogout()
-    setShowLogout(false)
-  }
-
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
-      <div className="flex items-center justify-between px-6 py-4">
-        <h1 className="text-xl font-semibold text-gray-900">Sundaram Portal</h1>
-        
+    <header className=" sticky top-0 z-50">
+      <div className="flex items-center justify-between px-6 py-6">
+        <div className="flex items-center">
+          <img
+            src={logo}
+            alt="Sundaram Mutual"
+            className="h-8"
+          />
+        </div>
+
         <div className="flex items-center gap-6">
           <div className="relative">
             <IconButton
-              icon={<NotificationIcon />}
+              icon={<Bell className="w-5 h-5 text-gray-700" />}
               className="hover:opacity-80 transition-opacity"
               onClick={() => setShowNotifications(true)}
             />
-            {unreadCount > 0 && <Badge count={unreadCount} />}
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
+                <span className="text-[10px] font-medium text-white">{unreadCount}</span>
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
-            <Avatar name={firstName} size={sizes.sm} />
-            
-            <div>
-              <p className="text-sm font-medium text-gray-900">{firstName}</p>
-              <p className="text-xs text-gray-500">{role}</p>
-            </div>
-            
-            <div className="relative">
-              <IconButton 
-                icon={<ChevronDownIcon />}
+            <Avatar name={firstName} size="sm" />
+
+            <div className="flex items-center gap-2">
+              <div>
+                <span className="text-[#6C5DD3] font-medium">{role}</span>
+                <span className="mx-1 text-gray-500">|</span>
+                <span className="text-gray-900">{firstName}</span>
+              </div>
+
+              <IconButton
+                icon={<ChevronDown className="w-5 h-5 text-gray-700" />}
                 onClick={() => setShowLogout(!showLogout)}
-                className={`transition-transform ${showLogout ? 'rotate-180' : ''}`}
+                className={`transition-transform ${showLogout ? "rotate-180" : ""}`}
               />
-              
+
               {showLogout && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100"> 
+                <div className="absolute right-6 top-14 w-48 bg-white rounded-lg shadow-lg border border-gray-100">
                   <button
-                    onClick={handleLogoutClick}
-                    className={`flex w-full items-center px-4 py-2 text-sm text-[${colors.primary.text}] hover:bg-[${colors.background.hover}]`}
+                    onClick={() => {
+                      onLogout()
+                      setShowLogout(false)
+                    }}
+                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
-                    <LogoutIcon />
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mr-3">
+                      <path
+                        d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5"
+                        stroke="currentColor"
+                        strokeWidth="1.67"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                     Logout
                   </button>
-                </div> 
+                </div>
               )}
             </div>
           </div>

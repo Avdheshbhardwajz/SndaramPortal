@@ -1,8 +1,24 @@
-import type React from 'react'
+import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Header } from "../components/Header"
+import { RowRequestManager } from "../components/RowRequestManager"
+import Configuration from "../components/Configuration"
+import UserManagement from "../components/UserManagement"
+
+interface Tab {
+  id: string
+  label: string
+}
+
+const tabs: Tab[] = [
+  { id: 'row-requests', label: 'Row Requests' },
+  { id: 'configuration', label: 'Configuration' },
+  { id: 'user-management', label: 'User Management' },
+]
 
 const AdminPage: React.FC = () => {
   const navigate = useNavigate()
+  const [activeTab, setActiveTab] = useState<string>('row-requests')
 
   const handleLogout = () => {
     localStorage.clear()
@@ -10,41 +26,42 @@ const AdminPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen p-8 font-poppins">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl md:text-[28px] font-bold text-[#1E3A8A] tracking-[-0.02em]">
-          Admin Dashboard
-        </h1>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-        >
-          Logout
-        </button>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">User Management</h2>
-          <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            Manage user accounts and permissions
-          </p>
+    <div className="min-h-screen ">
+      <Header firstName="Tushar" role="Admin" onLogout={handleLogout} />
+      <main className="container mx-auto px-4 py-4">
+        <div className="">
+          <h1 className="text-2xl font-semibold mb-1">
+            Hello, <span className="text-orange-500">Tushar</span>
+          </h1>
+          <p className="text-gray-600">Admin dashboard</p>
         </div>
-        
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">System Settings</h2>
-          <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            Configure system parameters and settings
-          </p>
+
+        <div className="border-b border-gray-200">
+          <nav className="-mb-px flex space-x-8">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`
+                  whitespace-nowrap border-b-2 py-4 px-1 text-sm font-medium
+                  ${activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  }
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </nav>
         </div>
-        
-        <div className="p-6 bg-white rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-[#1E3A8A] mb-2">Audit Logs</h2>
-          <p className="text-[15px] leading-[22px] font-normal text-[#475569]">
-            View system activity and audit trails
-          </p>
+
+        <div className="space-y-4">
+          {activeTab === 'row-requests' && <RowRequestManager />}
+          {activeTab === 'configuration' && <Configuration />}
+          {activeTab === 'user-management' && <UserManagement />}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

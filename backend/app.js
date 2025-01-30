@@ -12,7 +12,7 @@ if (!process.env.FRONTEND) {
   throw new Error("FRONTEND URL not defined in environment variables");
 }
 
-// Middleware
+//Middleware
 app.use(
   cors({
     origin: process.env.FRONTEND,
