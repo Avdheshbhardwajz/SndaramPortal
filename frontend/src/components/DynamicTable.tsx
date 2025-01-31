@@ -134,9 +134,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     return <div>Error loading table data</div>
   }
 
-  const editableColumns = getEditableColumns()
-
-  // Use all columns for display instead of just editable ones
+  // Use all columns for display
   const displayColumns = columns
 
   return (

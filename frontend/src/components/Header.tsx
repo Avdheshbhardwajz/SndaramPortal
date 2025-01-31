@@ -6,6 +6,7 @@ import { Bell, ChevronDown } from "lucide-react"
 import { NotificationDrawer } from "./NotificationDrawer"
 import { notificationService } from "../services/notificationService"
 import logo from "../assets/images/Logo-Full.svg"
+import type { Notification } from "../services/notificationService"
 
 interface HeaderProps {
   firstName: string
@@ -16,8 +17,9 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => {
   const [showLogout, setShowLogout] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications, setNotifications] = useState<any[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const isAdmin = role.toLowerCase() === 'admin'
 
   useEffect(() => {
     const fetchNotifications = async () => {
@@ -34,7 +36,36 @@ export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => 
     }
 
     fetchNotifications()
-  }, [role])
+    
+    // Set up polling for notifications if admin
+    let pollingInterval: NodeJS.Timeout | null = null
+    if (isAdmin) {
+      pollingInterval = setInterval(fetchNotifications, 30000) // Poll every 30 seconds for admin
+    }
+
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval)
+      }
+    }
+  }, [role, isAdmin])
+
+  const handleNotificationClick = async () => {
+    setShowNotifications(!showNotifications)
+    if (!showNotifications && notifications.length > 0 && !isAdmin) {
+      // Skip marking as read for admin notifications since they represent ongoing pending changes
+      try {
+        await Promise.all(
+          notifications.map(notification => 
+            notificationService.markAsRead(notification.id || '')
+          )
+        )
+        setUnreadCount(0)
+      } catch (error) {
+        console.error('Error marking notifications as read:', error)
+      }
+    }
+  }
 
   return (
     <header className=" sticky top-0 z-50">
@@ -52,7 +83,7 @@ export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => 
             <IconButton
               icon={<Bell className="w-5 h-5 text-gray-700" />}
               className="hover:opacity-80 transition-opacity"
-              onClick={() => setShowNotifications(true)}
+              onClick={handleNotificationClick}
             />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
@@ -62,7 +93,7 @@ export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => 
           </div>
 
           <div className="flex items-center gap-3">
-            <Avatar name={firstName} size="sm" />
+            <Avatar initial={firstName[0]} size="small" />
 
             <div className="flex items-center gap-2">
               <div>

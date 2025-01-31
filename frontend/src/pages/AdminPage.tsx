@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Header } from "../components/Header"
 import { RowRequestManager } from "../components/RowRequestManager"
@@ -19,19 +19,38 @@ const tabs: Tab[] = [
 const AdminPage: React.FC = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<string>('row-requests')
+  const [firstName, setFirstName] = useState<string>('')
+  const [role, setRole] = useState<string>('')
+
+  useEffect(() => {
+    const storedFirstName = localStorage.getItem('firstName')
+    const storedRole = localStorage.getItem('userRole')
+    
+    if (!storedFirstName || !storedRole) {
+      navigate('/')
+      return
+    }
+
+    setFirstName(storedFirstName)
+    setRole(storedRole)
+  }, [navigate])
 
   const handleLogout = () => {
     localStorage.clear()
     navigate('/')
   }
 
+  if (!firstName || !role) {
+    return null // or a loading spinner
+  }
+
   return (
     <div className="min-h-screen ">
-      <Header firstName="Tushar" role="Admin" onLogout={handleLogout} />
+      <Header firstName={firstName} role={role} onLogout={handleLogout} />
       <main className="container mx-auto px-4 py-4">
         <div className="">
           <h1 className="text-2xl font-semibold mb-1">
-            Hello, <span className="text-orange-500">Tushar</span>
+            Hello, <span className="text-orange-500">{firstName}</span>
           </h1>
           <p className="text-gray-600">Admin dashboard</p>
         </div>
@@ -56,7 +75,7 @@ const AdminPage: React.FC = () => {
           </nav>
         </div>
 
-        <div className="space-y-4">
+        <div className="mt-6">
           {activeTab === 'row-requests' && <RowRequestManager />}
           {activeTab === 'configuration' && <Configuration />}
           {activeTab === 'user-management' && <UserManagement />}

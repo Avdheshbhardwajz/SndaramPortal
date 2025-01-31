@@ -3,7 +3,7 @@ import { useConfiguration } from './configuration/hooks/useConfiguration';
 import { ConfigurationTabs } from './configuration/ConfigurationTabs';
 import  ColumnConfiguration  from './configuration/ColumnConfiguration';
 import DropdownManagement from './configuration/DropdownManagement';
-import { GroupConfiguration } from './configuration/GroupConfiguration';
+import GroupConfiguration from './configuration/GroupConfiguration';
 import { dropdownConfigService } from '../services/dropdownConfigService';
 
 const Configuration: React.FC = () => {

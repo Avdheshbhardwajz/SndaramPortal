@@ -1,20 +1,20 @@
 import React from 'react'
-import { IconButton } from './ui/IconButton'
+//import { IconButton } from './ui/IconButton'
 import { usePagination } from '../hooks/usePagination'
-import { colors } from '../constants/colors'
+//import { colors } from '../constants/colors'
 
 interface PaginationProps {
   currentPage: number
   totalPages: number
   onPageChange: (page: number) => void
 }
-
+//ye hatana hai !!!
 const ChevronLeftIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
     <path d="M12.5 15L7.5 10L12.5 5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 )
-
+//ye hatana hai !!!
 const ChevronRightIcon = () => (
   <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
     <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" strokeWidth="1.67" strokeLinecap="round" strokeLinejoin="round"/>

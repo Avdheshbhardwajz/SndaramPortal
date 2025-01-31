@@ -1,16 +1,31 @@
 import { API_URL, ENDPOINTS } from '../config/constants'
 
-interface Notification {
-  id: string
-  message: string
-  status: 'approved' | 'rejected' | 'pending'
-  timestamp: string
-  table: string
+export interface Notification {
+  id?: string
+  request_id: string
+  type: 'change' | 'add_row'
+  table_name: string
+  status: string
+  approver: string
+  updated_at: string
+  old_data?: Record<string, any>
+  new_data?: Record<string, any>
+  data?: Record<string, any>
+  comments?: string
+  isAdminNotification?: boolean
+}
+
+interface AdminNotification {
+  table_name: string
+  maker: string
+  created_at: string
+  pending_count: number
 }
 
 interface NotificationResponse {
   success: boolean
-  notifications: Notification[]
+  notifications?: Notification[]
+  data?: AdminNotification[]
   message?: string
 }
 
@@ -38,13 +53,28 @@ export const notificationService = {
         throw new Error('Failed to fetch notifications')
       }
 
-      const data: NotificationResponse = await response.json()
+      const responseData: NotificationResponse = await response.json()
       
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to fetch notifications')
+      if (!responseData.success) {
+        throw new Error(responseData.message || 'Failed to fetch notifications')
       }
 
-      return data.notifications
+      if (role === 'admin' && responseData.data) {
+        // Transform admin notifications to match the expected format
+        return responseData.data.map((adminNotif) => ({
+          id: `${adminNotif.table_name}-${adminNotif.maker}`,
+          request_id: adminNotif.maker,
+          type: 'change',
+          table_name: adminNotif.table_name,
+          status: 'pending',
+          approver: '',
+          updated_at: adminNotif.created_at,
+          comments: `${adminNotif.pending_count} pending changes`,
+          isAdminNotification: true
+        }))
+      }
+
+      return responseData.notifications || []
     } catch (error) {
       console.error('Error fetching notifications:', error)
       return []
@@ -60,6 +90,11 @@ export const notificationService = {
     }
 
     try {
+      // Skip if it's an admin notification (these don't need to be marked as read)
+      if (notificationId.includes('-')) {
+        return true
+      }
+
       const response = await fetch(`${API_URL}/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {

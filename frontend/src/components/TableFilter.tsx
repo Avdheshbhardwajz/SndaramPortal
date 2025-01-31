@@ -5,7 +5,7 @@ type TextOperator = 'equals' | 'notEqual' | 'contains' | 'notContains' | 'starts
 type NumberOperator = 'equals' | 'notEqual' | 'greaterThan' | 'greaterThanOrEqual' | 'lessThan' | 'lessThanOrEqual'
 type DateOperator = 'equals' | 'notEqual' | 'greaterThan' | 'lessThan' | 'inRange'
 
-interface FilterCondition {
+export interface FilterCondition {
   type: FilterType
   operator: TextOperator | NumberOperator | DateOperator
   value: string | number | Date | null
