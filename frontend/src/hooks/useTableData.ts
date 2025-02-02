@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { fetchTableData } from "../services/tableDataService";
+import { useState, useEffect, useCallback } from "react";
+import { fetchTableData, PaginationData } from "../services/tableDataService";
 
 interface UseTableDataProps {
   tableName: string;
@@ -11,9 +11,8 @@ export interface UseTableDataReturn {
   columns: string[];
   isLoading: boolean;
   error: string | null;
-  refresh: () => void;
-  totalPages: number;
-  currentPage: number;
+  refresh: () => Promise<void>;
+  pagination: PaginationData;
   setCurrentPage: (page: number) => void;
 }
 
@@ -25,43 +24,74 @@ export const useTableData = ({
   const [columns, setColumns] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [pagination, setPagination] = useState<PaginationData>({
+    total: 0,
+    totalPages: 1,
+    currentPage: 1,
+    pageSize,
+  });
 
-  const fetchData = async () => {
+  const fetchDataFromApi = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+
     try {
       const response = await fetchTableData(tableName, {
-        page: currentPage,
+        page: pagination.currentPage,
         pageSize,
       });
+
       if (response.success) {
         setData(response.data);
         setColumns(response.columns);
-        setTotalPages(Math.ceil(response.total / pageSize));
+        setPagination(response.pagination);
       } else {
         setError(response.message || "Failed to fetch table data");
+        // Reset data but keep current pagination settings
+        setData([]);
+        setColumns([]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
+      // Reset data but keep current pagination settings
+      setData([]);
+      setColumns([]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [tableName, pagination.currentPage, pageSize]);
 
+  // Fetch data when dependencies change
   useEffect(() => {
-    fetchData();
-  }, [tableName, currentPage, pageSize]);
+    fetchDataFromApi();
+  }, [fetchDataFromApi]);
+
+  // Handle page changes
+  const setCurrentPage = useCallback((page: number) => {
+    setPagination((prev) => ({
+      ...prev,
+      currentPage: Math.max(1, Math.min(page, prev.totalPages)),
+    }));
+  }, []);
+
+  // Reset to first page when table name or page size changes
+  useEffect(() => {
+    setPagination((prev) => ({
+      ...prev,
+      currentPage: 1,
+      pageSize,
+    }));
+  }, [tableName, pageSize]);
 
   return {
     data,
     columns,
     isLoading,
     error,
-    refresh: fetchData,
-    totalPages,
-    currentPage,
+    refresh: fetchDataFromApi,
+    pagination,
     setCurrentPage,
   };
 };

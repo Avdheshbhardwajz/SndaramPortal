@@ -19,12 +19,7 @@ import {
   ColumnDropdownOption,
   ErrorResponse,
 } from "../../services/dropdownConfigService";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../ui/Dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/Dialog";
 import { ScrollArea } from "../ui/scroll-area";
 import { Table, TableBody, TableCell, TableRow } from "../ui/table";
 import axios from "axios";
@@ -34,7 +29,9 @@ interface DropdownManagerProps {
   tables: string[];
 }
 
-export default function DropdownManager({ tables: initialTables = [] }: DropdownManagerProps) {
+export default function DropdownManager({
+  tables: initialTables = [],
+}: DropdownManagerProps) {
   const [selectedTable, setSelectedTable] = useState("");
   const [tables, setTables] = useState<string[]>(initialTables);
   const [columns, setColumns] = useState<string[]>([]);
@@ -52,13 +49,13 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
   const fetchTables = async () => {
     try {
       setLoading(true);
-      const response = await axios.get<{ success: boolean; tables: { table_name: string }[] }>(
-        "http://localhost:8080/table",
-        { headers: getAuthHeaders() }
-      );
+      const response = await axios.get<{
+        success: boolean;
+        tables: { table_name: string }[];
+      }>("http://localhost:8080/table", { headers: getAuthHeaders() });
 
       if (response.data.success) {
-        setTables(response.data.tables.map(t => t.table_name));
+        setTables(response.data.tables.map((t) => t.table_name));
       } else {
         showAlert("Failed to fetch tables", "error");
       }
@@ -106,8 +103,6 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
         { headers: getAuthHeaders() }
       );
 
-      console.log("Fetch columns response:", response.data); // Debug log
-
       if (response.data.success && Array.isArray(response.data.columns)) {
         setColumns(response.data.columns);
         if (response.data.columns.length === 0) {
@@ -117,8 +112,7 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
         showAlert(response.data.message || "Failed to fetch columns", "error");
         setColumns([]);
       }
-    } catch (error) {
-      console.error("Error fetching columns:", error);
+    } catch {
       showAlert("Error fetching columns", "error");
       setColumns([]);
     } finally {
@@ -210,10 +204,11 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
 
       const allOptions = [...existingTableOptions, newColumnOption];
 
-      const saveResponse = await dropdownConfigService.updateColumnDropdownOptions(
-        selectedTable,
-        allOptions
-      );
+      const saveResponse =
+        await dropdownConfigService.updateColumnDropdownOptions(
+          selectedTable,
+          allOptions
+        );
 
       if (saveResponse.success) {
         showAlert("Options saved successfully", "success");
@@ -238,6 +233,11 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
     setSelectedColumn(""); // Reset column selection
     setOptions([]); // Reset options
     setDialogOpen(false);
+  };
+
+  const handleColumnChange = (value: string) => {
+    setSelectedColumn(value);
+    setOptions([]);
   };
 
   const showAlert = (message: string, type: "error" | "success" | "info") => {
@@ -270,8 +270,8 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
           {/* Table Selection Dialog */}
           <div className="space-y-2 font-poppins">
             <Label>Selected Table: {selectedTable || "None"}</Label>
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               className="w-full justify-start"
               onClick={() => setDialogOpen(true)}
             >
@@ -318,13 +318,7 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
           {selectedTable && (
             <div className="space-y-2">
               <Label>Select Column</Label>
-              <Select
-                value={selectedColumn}
-                onValueChange={(value) => {
-                  console.log("Selected column:", value);
-                  setSelectedColumn(value);
-                }}
-              >
+              <Select value={selectedColumn} onValueChange={handleColumnChange}>
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select a column" />
                 </SelectTrigger>
@@ -346,7 +340,9 @@ export default function DropdownManager({ tables: initialTables = [] }: Dropdown
                 </SelectContent>
               </Select>
               {columns.length === 0 && !loading && (
-                <p className="text-sm text-gray-500">No columns found for this table</p>
+                <p className="text-sm text-gray-500">
+                  No columns found for this table
+                </p>
               )}
             </div>
           )}

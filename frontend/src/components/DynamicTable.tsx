@@ -14,11 +14,13 @@ interface ColumnStatus {
 interface DynamicTableProps {
   tableName: string;
   pageSize: number;
+  onPageSizeChange: (newPageSize: number) => void;
 }
 
 export const DynamicTable: React.FC<DynamicTableProps> = ({
   tableName,
   pageSize,
+  onPageSizeChange,
 }) => {
   const {
     data: processedData,
@@ -26,8 +28,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     isLoading: isDataLoading,
     error: dataError,
     refresh: refreshData,
-    totalPages,
-    currentPage,
+    pagination,
     setCurrentPage,
   } = useTableData({ tableName, pageSize });
 
@@ -110,6 +111,14 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    onPageSizeChange(newSize);
+  };
+
   // Function to determine column background color
   const getColumnStyle = (column: string) => {
     if (
@@ -151,7 +160,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   if (dataError || permissionsError) {
     return (
       <div className="text-red-600 p-4 text-center bg-red-50 rounded-lg">
-        Error loading table data
+        {dataError || permissionsError}
       </div>
     );
   }
@@ -163,7 +172,34 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       )}
 
       <div className="flex flex-col flex-1 bg-white rounded-lg border border-[#e3f2fd] overflow-hidden">
-        {/* Single scroll container for both header and body */}
+        {/* Table Header with Pagination */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#e3f2fd]">
+          <div className="flex items-center gap-4">
+            <span className="text-sm text-[#1a237e] font-medium">
+              Rows per page:
+            </span>
+            <select
+              value={pageSize}
+              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+              className="h-8 px-2 rounded-lg border border-[#e3f2fd] text-sm text-[#1a237e] focus:outline-none focus:border-[#00bfa5]"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
+
+          {pagination.totalPages > 0 && (
+            <Pagination
+              currentPage={pagination.currentPage}
+              totalPages={pagination.totalPages}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </div>
+
+        {/* Table Content */}
         <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[#e3f2fd] scrollbar-track-transparent">
           <table className="w-full border-collapse min-w-max">
             {/* Fixed header */}
@@ -244,17 +280,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             </tbody>
           </table>
         </div>
-
-        {/* Pagination - Fixed at bottom */}
-        {totalPages > 1 && (
-          <div className="border-t border-[#e3f2fd] bg-white py-3 px-4">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-            />
-          </div>
-        )}
       </div>
 
       {/* Add Row Button */}

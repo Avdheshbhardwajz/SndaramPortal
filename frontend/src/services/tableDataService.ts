@@ -1,14 +1,22 @@
 import { API_URL, ENDPOINTS } from "../config/constants";
 
+// API Response Types
+export interface PaginationData {
+  total: number;
+  totalPages: number;
+  currentPage: number;
+  pageSize: number;
+}
+
 export interface TableDataResponse {
   success: boolean;
   data: Record<string, unknown>[];
   columns: string[];
-  total: number;
   message?: string;
+  pagination: PaginationData;
 }
 
-interface EditRowRequest {
+export interface EditRowRequest {
   table_name: string;
   row_id: string;
   old_values: Record<string, unknown>;
@@ -16,16 +24,23 @@ interface EditRowRequest {
   table_id: string;
 }
 
-interface EditRowResponse {
+export interface EditRowResponse {
   success: boolean;
   message: string;
   data?: Record<string, unknown>;
 }
 
-interface FetchTableDataParams {
+export interface FetchTableDataParams {
   page: number;
   pageSize: number;
 }
+
+const DEFAULT_PAGINATION: PaginationData = {
+  total: 0,
+  totalPages: 1,
+  currentPage: 1,
+  pageSize: 10,
+};
 
 export const fetchTableData = async (
   tableName: string,
@@ -38,14 +53,12 @@ export const fetchTableData = async (
       success: false,
       data: [],
       columns: [],
-      total: 0,
       message: "No authentication token found",
+      pagination: DEFAULT_PAGINATION,
     };
   }
 
   try {
-    console.log("Fetching table data for:", tableName, "with params:", params);
-
     const response = await fetch(
       `${API_URL}/tableData/${tableName}?page=${params.page}&pageSize=${params.pageSize}`,
       {
@@ -58,40 +71,20 @@ export const fetchTableData = async (
       }
     );
 
-    console.log("Response status:", response.status);
-    const contentType = response.headers.get("content-type");
-    console.log("Content type:", contentType);
-
-    let data;
-    const rawResponse = await response.text();
-    console.log("Raw response:", rawResponse);
-
-    try {
-      data = JSON.parse(rawResponse);
-    } catch (e) {
-      console.error("Error parsing JSON:", e);
-      return {
-        success: false,
-        data: [],
-        columns: [],
-        total: 0,
-        message: "Invalid JSON response from server",
-      };
-    }
+    const data = await response.json();
 
     if (!response.ok) {
-      console.error("Error response:", data);
       return {
         success: false,
         data: [],
         columns: [],
-        total: 0,
         message: data.message || `Failed to fetch data for table ${tableName}`,
+        pagination: DEFAULT_PAGINATION,
       };
     }
 
-    // Transform the response data to match expected format
-    const transformedData = {
+    // Transform and validate the response data
+    return {
       success: true,
       data: Array.isArray(data.data) ? data.data : [],
       columns: Array.isArray(data.columns)
@@ -99,28 +92,25 @@ export const fetchTableData = async (
         : Array.isArray(data.data) && data.data.length > 0
         ? Object.keys(data.data[0])
         : [],
-      total:
-        typeof data.total === "number"
-          ? data.total
-          : Array.isArray(data.data)
-          ? data.data.length
-          : 0,
       message: data.message,
+      pagination: {
+        total: data.pagination?.total ?? 0,
+        totalPages:
+          data.pagination?.totalPages ??
+          Math.ceil((data.pagination?.total ?? 0) / params.pageSize),
+        currentPage: data.pagination?.currentPage ?? params.page,
+        pageSize: data.pagination?.pageSize ?? params.pageSize,
+      },
     };
-
-    console.log("Transformed data:", transformedData);
-    return transformedData;
   } catch (error) {
     console.error("Error fetching table data:", error);
     return {
       success: false,
       data: [],
       columns: [],
-      total: 0,
       message:
-        error instanceof Error
-          ? error.message
-          : `Failed to fetch data for table ${tableName}`,
+        error instanceof Error ? error.message : "Failed to fetch table data",
+      pagination: DEFAULT_PAGINATION,
     };
   }
 };

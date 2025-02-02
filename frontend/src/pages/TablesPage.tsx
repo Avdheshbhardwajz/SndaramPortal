@@ -167,6 +167,7 @@ export const TablesPage: React.FC = () => {
                 key={tableKey}
                 tableName={selectedTable}
                 pageSize={pageSize}
+                onPageSizeChange={handlePageSizeChange}
               />
             </div>
           </div>

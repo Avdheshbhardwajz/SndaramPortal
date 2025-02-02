@@ -16,8 +16,8 @@ export const Pagination: React.FC<PaginationProps> = ({
 }) => {
   const pageNumbers = usePagination({ currentPage, totalPages });
 
-  if (totalPages <= 1) return null;
-
+  // if (totalPages <= 1) return null;
+  console.log({ currentPage, totalPages, onPageChange });
   return (
     <div className="flex items-center justify-between px-2">
       <div className="flex items-center gap-3">
