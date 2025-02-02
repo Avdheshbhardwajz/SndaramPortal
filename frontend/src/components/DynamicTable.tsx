@@ -1,10 +1,15 @@
-import React, { useState } from "react";
-import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { useTableData } from "../hooks/useTableData";
 import { useColumnPermissions } from "../hooks/useColumnPermissions";
 import { EditRowDrawer } from "./EditRowDrawer";
-import { requestRowEdit } from "../services/tableDataService";
+import {
+  requestRowEdit,
+  fetchDropdownOptions,
+  DropdownConfig,
+} from "../services/tableDataService";
 import { Pagination } from "./Pagination";
+import { useToast } from "@/hooks/use-toast";
 
 interface ColumnStatus {
   column_name: string;
@@ -15,6 +20,7 @@ interface DynamicTableProps {
   tableName: string;
   pageSize: number;
   onPageSizeChange: (newPageSize: number) => void;
+  userRole: "maker" | "checker";
 }
 
 export const DynamicTable: React.FC<DynamicTableProps> = ({
@@ -48,6 +54,31 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [dropdownColumns, setDropdownColumns] = useState<DropdownConfig[]>([]);
+  const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
+  const { toast } = useToast();
+
+  // Fetch dropdown columns when table name changes
+  useEffect(() => {
+    fetchDropdownData();
+  }, [tableName]);
+
+  const fetchDropdownData = async () => {
+    try {
+      setIsLoadingDropdowns(true);
+      const dropdowns = await fetchDropdownOptions(tableName);
+      setDropdownColumns(dropdowns.filter((item) => item.options.length > 0));
+    } catch (error) {
+      console.error("Error fetching dropdown options:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dropdown options",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingDropdowns(false);
+    }
+  };
 
   const handleEditClick = (row: Record<string, unknown>) => {
     setSelectedRow(row);
@@ -93,12 +124,23 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       if (response.success) {
         handleDrawerClose();
         refreshData();
+        toast({
+          title: "Success",
+          description: isAddMode
+            ? "Row added successfully"
+            : "Changes requested successfully",
+        });
       } else {
         setError(response.message || "Failed to submit edit request");
       }
     } catch (err) {
       console.error("Error saving row:", err);
       setError(err instanceof Error ? err.message : "Failed to save changes");
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to save changes",
+      });
     }
   };
 
@@ -149,7 +191,7 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     return ""; // Default background for editable cells
   };
 
-  if (isDataLoading || isPermissionsLoading) {
+  if (isDataLoading || isPermissionsLoading || isLoadingDropdowns) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00bfa5]"></div>
@@ -172,33 +214,6 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
       )}
 
       <div className="flex flex-col flex-1 bg-white rounded-lg border border-[#e3f2fd] overflow-hidden">
-        {/* Table Header with Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-[#e3f2fd]">
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-[#1a237e] font-medium">
-              Rows per page:
-            </span>
-            <select
-              value={pageSize}
-              onChange={(e) => handlePageSizeChange(Number(e.target.value))}
-              className="h-8 px-2 rounded-lg border border-[#e3f2fd] text-sm text-[#1a237e] focus:outline-none focus:border-[#00bfa5]"
-            >
-              <option value={10}>10</option>
-              <option value={25}>25</option>
-              <option value={50}>50</option>
-              <option value={100}>100</option>
-            </select>
-          </div>
-
-          {pagination.totalPages > 0 && (
-            <Pagination
-              currentPage={pagination.currentPage}
-              totalPages={pagination.totalPages}
-              onPageChange={handlePageChange}
-            />
-          )}
-        </div>
-
         {/* Table Content */}
         <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[#e3f2fd] scrollbar-track-transparent">
           <table className="w-full border-collapse min-w-max">
@@ -280,15 +295,58 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination and Page Size Selector - Bottom */}
+        {pagination.totalPages > 0 && (
+          <div className="border-t border-[#e3f2fd] bg-white py-3 px-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <span className="text-sm text-[#1a237e] font-medium">
+                  Rows per page:
+                </span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                  className="h-8 px-2 rounded-lg border border-[#e3f2fd] text-sm text-[#1a237e] focus:outline-none focus:border-[#00bfa5]"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+              </div>
+
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Row Button */}
-      <button
-        onClick={handleAddClick}
-        className="fixed bottom-6 right-6 w-12 h-12 bg-[#00bfa5] text-white rounded-full shadow-lg hover:bg-[#00bfa5]/90 transition-colors flex items-center justify-center z-30"
-      >
-        <Plus className="h-6 w-6" />
-      </button>
+      {
+        <button
+          onClick={handleAddClick}
+          className="fixed bottom-6 right-6 w-12 h-12 bg-[#00bfa5] text-white rounded-full shadow-lg hover:bg-[#00bfa5]/90 transition-colors flex items-center justify-center z-30"
+          aria-label="Add new row"
+        >
+          <svg
+            className="w-6 h-6"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="12" y1="5" x2="12" y2="19" />
+            <line x1="5" y1="12" x2="19" y2="12" />
+          </svg>
+        </button>
+      }
 
       {/* Edit Drawer */}
       <EditRowDrawer
@@ -299,6 +357,8 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
         onSave={handleRowSave}
         mode={isAddMode ? "add" : "edit"}
         isColumnEditable={isColumnEditable}
+        tableName={tableName}
+        dropdownColumns={dropdownColumns}
       />
     </div>
   );

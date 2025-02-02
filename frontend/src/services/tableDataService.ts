@@ -1,4 +1,5 @@
 import { API_URL, ENDPOINTS } from "../config/constants";
+import axios from "axios";
 
 // API Response Types
 export interface PaginationData {
@@ -35,12 +36,44 @@ export interface FetchTableDataParams {
   pageSize: number;
 }
 
+export interface DropdownConfig {
+  columnName: string;
+  options: string[];
+}
+
+export interface DropdownResponse {
+  success: boolean;
+  data: DropdownConfig[];
+  message?: string;
+}
+
 const DEFAULT_PAGINATION: PaginationData = {
   total: 0,
   totalPages: 1,
   currentPage: 1,
   pageSize: 10,
 };
+
+const API_BASE_URL = "http://localhost:8080";
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+};
+
+interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  error?: string;
+}
+
+interface RowData {
+  [key: string]: unknown;
+}
 
 export const fetchTableData = async (
   tableName: string,
@@ -143,6 +176,66 @@ export const requestRowEdit = async (
     return data;
   } catch (error) {
     console.error("Error submitting edit request:", error);
+    throw error;
+  }
+};
+
+export const addTableRow = async (
+  tableName: string,
+  rowData: RowData
+): Promise<ApiResponse<void>> => {
+  try {
+    const response = await axios.post<ApiResponse<void>>(
+      `${API_BASE_URL}/addrow`,
+      {
+        table_name: tableName,
+        row_data: rowData,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to add row");
+    }
+
+    return response.data;
+  } catch (error) {
+    console.error("Error adding row:", error);
+    throw error;
+  }
+};
+
+export const fetchDropdownOptions = async (
+  tableName: string
+): Promise<DropdownConfig[]> => {
+  try {
+    const response = await fetch(
+      `${API_URL}${ENDPOINTS.TABLE.FETCH_DROPDOWN_OPTIONS}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify({ table_name: tableName }),
+      }
+    );
+
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || "Failed to fetch dropdown options");
+    }
+
+    if (!data.success) {
+      throw new Error(data.message || "Failed to fetch dropdown options");
+    }
+
+    console.log("Fetched dropdown options:", data.data); // Debug log
+    return data.data || [];
+  } catch (error) {
+    console.error("Error fetching dropdown options:", error);
     throw error;
   }
 };

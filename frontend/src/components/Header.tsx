@@ -34,19 +34,17 @@ export const Header: React.FC = () => {
   // Get background color based on first letter
   const getAvatarColor = (letter: string) => {
     const colors = [
-      "bg-blue-500",
-      "bg-green-500",
-      "bg-yellow-500",
-      "bg-purple-500",
-      "bg-pink-500",
-      "bg-indigo-500",
+      "bg-[#1A237E]", // Dark blue
+      "bg-[#2962FF]", // Blue
+      "bg-[#00BFA5]", // Turquoise
+      "bg-[#FF5722]", // Orange
     ];
     const index = letter.charCodeAt(0) % colors.length;
     return colors[index];
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white">
+    <header className="sticky top-0 z-50 w-full border-b border-[#e3f2fd] bg-white">
       <div className="container mx-auto px-4 h-16">
         <div className="flex items-center justify-between h-full">
           {/* Logo */}
@@ -65,7 +63,7 @@ export const Header: React.FC = () => {
               <div
                 className={`w-8 h-8 rounded-full ${getAvatarColor(
                   userInitial
-                )} flex items-center justify-center text-white font-medium`}
+                )} flex items-center justify-center text-white font-medium shadow-sm`}
               >
                 {userInitial}
               </div>
@@ -73,21 +71,21 @@ export const Header: React.FC = () => {
               {/* User Info */}
               <div className="ml-3 flex items-center">
                 <div className="text-sm">
-                  <span className="text-blue-600 font-medium capitalize">
+                  <span className="text-[#2962FF] font-medium capitalize">
                     {userData.role}
                   </span>
-                  <span className="mx-2 text-gray-300">|</span>
-                  <span className="text-gray-700">{userData.firstName}</span>
+                  <span className="mx-2 text-[#e3f2fd]">|</span>
+                  <span className="text-[#212121]">{userData.firstName}</span>
                 </div>
 
                 {/* Logout Button */}
                 <div className="relative ml-2">
                   <button
                     onClick={() => setShowLogout(!showLogout)}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-1 hover:bg-[#e3f2fd] rounded-full transition-colors"
                   >
                     <ChevronDown
-                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                      className={`w-5 h-5 text-[#212121] transition-transform duration-200 ${
                         showLogout ? "rotate-180" : ""
                       }`}
                     />
@@ -95,17 +93,17 @@ export const Header: React.FC = () => {
 
                   {/* Logout Dropdown */}
                   {showLogout && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100">
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-[#e3f2fd]">
                       <button
                         onClick={handleLogout}
-                        className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center"
+                        className="w-full px-4 py-2 text-sm text-left text-[#212121] hover:bg-[#e3f2fd] flex items-center transition-colors"
                       >
                         <svg
                           width="20"
                           height="20"
                           viewBox="0 0 20 20"
                           fill="none"
-                          className="mr-2"
+                          className="mr-2 text-[#FF5722]"
                         >
                           <path
                             d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5"

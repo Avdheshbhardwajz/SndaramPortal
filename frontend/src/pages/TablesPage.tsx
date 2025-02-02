@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "../components/Layout";
 import { DynamicTable } from "../components/DynamicTable";
-import { PageSizeSelector } from "../components/PageSizeSelector";
 import { fetchTables } from "../services/tableService";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
@@ -157,10 +156,6 @@ export const TablesPage: React.FC = () => {
                 <ArrowLeft className="h-4 w-4 mr-1" />
                 Back to Tables
               </button>
-              <PageSizeSelector
-                pageSize={pageSize}
-                onPageSizeChange={handlePageSizeChange}
-              />
             </div>
             <div className="flex-1 min-h-0 p-4">
               <DynamicTable

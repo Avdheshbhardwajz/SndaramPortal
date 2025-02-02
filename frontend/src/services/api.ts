@@ -23,11 +23,22 @@ interface ApproveRejectResponse {
   data?: ChangeTrackerData;
 }
 
-interface CheckerNotification {
+interface Notification {
+  type: "change" | "add_row";
   table_name: string;
-  maker: string;
-  created_at: string;
-  pending_count: number;
+  status: string;
+  approver: string;
+  updated_at: string;
+  old_data?: Record<string, unknown>;
+  new_data?: Record<string, unknown>;
+  data?: Record<string, unknown>;
+  comments: string | null;
+  request_id: string;
+}
+
+interface NotificationResponse {
+  success: boolean;
+  notifications: Notification[];
 }
 
 const API_BASE_URL = "http://localhost:8080";
@@ -237,12 +248,11 @@ export const fetchGroupList = async () => {
 
 export const fetchCheckerNotifications = async (
   role: "checker" | "maker"
-): Promise<{
-  success: boolean;
-  data: CheckerNotification[];
-}> => {
+): Promise<NotificationResponse> => {
   try {
-    const response = await axios.get(`${API_BASE_URL}/checker-notification`, {
+    const endpoint =
+      role === "maker" ? "/maker-notification" : "/checker-notification";
+    const response = await axios.get(`${API_BASE_URL}${endpoint}`, {
       headers: {
         ...getAuthHeaders(),
         "X-User-Role": role,
@@ -252,9 +262,7 @@ export const fetchCheckerNotifications = async (
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(
-        response.data.message || "Failed to fetch checker notifications"
-      );
+      throw new Error(response.data.message || "Failed to fetch notifications");
     }
   } catch (error) {
     throw handleApiError(error);
