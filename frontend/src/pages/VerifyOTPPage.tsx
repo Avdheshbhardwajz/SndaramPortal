@@ -112,22 +112,22 @@ export const VerifyOTPPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-blue-50 p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1a237e] via-[#0d47a1] to-[#00bfa5] p-4">
+      <div className="bg-white/90 rounded-3xl shadow-2xl p-8 w-full max-w-md backdrop-blur-sm backdrop-filter">
         <div className="flex flex-col items-center space-y-6">
-          <Logo className="h-12 w-auto" />
+          <Logo className="h-12 w-auto text-[#1a237e]" />
 
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-[#1a237e]">
               Verify Your Email
             </h1>
-            <p className="text-gray-500">
+            <p className="text-gray-600">
               We've sent a verification code to{" "}
-              <span className="font-medium text-gray-900">{email}</span>
+              <span className="font-medium text-[#1a237e]">{email}</span>
             </p>
             <p className="text-sm text-gray-500">
               OTP will expire in{" "}
-              <span className="font-medium text-blue-600">
+              <span className="font-medium text-[#00bfa5]">
                 {timeLeft} seconds
               </span>
             </p>
@@ -137,7 +137,7 @@ export const VerifyOTPPage: React.FC = () => {
             <div className="space-y-1.5">
               <label
                 htmlFor="otp"
-                className="block text-sm font-medium text-gray-700"
+                className="block text-sm font-medium text-[#1a237e]"
               >
                 Enter OTP
               </label>
@@ -151,7 +151,7 @@ export const VerifyOTPPage: React.FC = () => {
                 }}
                 maxLength={6}
                 required
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg tracking-widest text-center font-mono"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#00bfa5] focus:border-transparent text-lg tracking-widest text-center font-mono"
                 placeholder="000000"
               />
               {error && (
@@ -164,7 +164,7 @@ export const VerifyOTPPage: React.FC = () => {
             <button
               type="submit"
               disabled={isLoading || otp.length !== 6 || !isActive}
-              className="w-full bg-blue-600 text-white py-2.5 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors duration-200"
+              className="w-full bg-gradient-to-r from-[#1a237e] to-[#00bfa5] text-white py-2.5 rounded-lg hover:opacity-90 disabled:opacity-50 font-medium transition-all duration-200"
             >
               {isLoading ? (
                 <span className="flex items-center justify-center">
@@ -182,20 +182,21 @@ export const VerifyOTPPage: React.FC = () => {
               <button
                 onClick={handleResendOTP}
                 disabled={isLoading}
-                className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                className="text-sm text-[#00bfa5] hover:text-[#00bfa5]/80 font-medium"
               >
                 Resend OTP
               </button>
             ) : (
               <p className="text-sm text-gray-500">
-                Resend OTP in {timeLeft} seconds
+                Resend OTP in <span className="text-[#00bfa5]">{timeLeft}</span>{" "}
+                seconds
               </p>
             )}
           </div>
 
           <button
             onClick={() => navigate("/login")}
-            className="text-sm text-gray-500 hover:text-gray-700"
+            className="text-sm text-gray-500 hover:text-[#1a237e] transition-colors"
           >
             ← Back to Login
           </button>

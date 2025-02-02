@@ -10,6 +10,11 @@ import {
 } from "../services/tableDataService";
 import { Pagination } from "./Pagination";
 import { useToast } from "@/hooks/use-toast";
+import {
+  fetchHighlightedCells,
+  CellHighlight,
+} from "@/services/highlightService";
+import HighlightedCell from "./ui/HighlightedCell";
 
 interface ColumnStatus {
   column_name: string;
@@ -57,10 +62,19 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
   const [dropdownColumns, setDropdownColumns] = useState<DropdownConfig[]>([]);
   const [isLoadingDropdowns, setIsLoadingDropdowns] = useState(false);
   const { toast } = useToast();
+  const [highlightedCells, setHighlightedCells] = useState<CellHighlight[]>([]);
 
   // Fetch dropdown columns when table name changes
   useEffect(() => {
     fetchDropdownData();
+  }, [tableName]);
+
+  useEffect(() => {
+    if (tableName) {
+      fetchHighlightedCells(tableName)
+        .then((highlights) => setHighlightedCells(highlights))
+        .catch(console.error);
+    }
   }, [tableName]);
 
   const fetchDropdownData = async () => {
@@ -130,6 +144,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
             ? "Row added successfully"
             : "Changes requested successfully",
         });
+
+        // Refresh highlighted cells after edit
+        const highlights = await fetchHighlightedCells(tableName);
+        setHighlightedCells(highlights);
       } else {
         setError(response.message || "Failed to submit edit request");
       }
@@ -176,19 +194,27 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
     return "bg-white"; // Default background for editable columns
   };
 
-  // Function to determine cell background color
-  const getCellStyle = (column: string) => {
-    if (
-      !columnStatuses.some(
-        (status: ColumnStatus) => status.column_name === column
-      )
-    ) {
-      return "bg-[#e3f2fd]/50"; // Lighter blue for cells not in API response
-    }
-    if (!isColumnEditable(column)) {
-      return "bg-[#e8eaf6]/50"; // Lighter indigo for non-editable cells
-    }
-    return ""; // Default background for editable cells
+  const renderCell = (
+    value: unknown,
+    row: Record<string, unknown>,
+    columnName: string
+  ) => {
+    const rowId = String(
+      row.id || row[`${tableName}_sk`] || row[`${tableName}_id`] || "undefined"
+    );
+
+    const isHighlighted = highlightedCells.some(
+      (highlight) =>
+        highlight.row_id === rowId &&
+        highlight.changed_fields.includes(columnName)
+    );
+
+    return (
+      <HighlightedCell
+        value={String(value ?? "")}
+        isHighlighted={isHighlighted}
+      />
+    );
   };
 
   if (isDataLoading || isPermissionsLoading || isLoadingDropdowns) {
@@ -282,12 +308,10 @@ export const DynamicTable: React.FC<DynamicTableProps> = ({
                   </td>
                   {columns.map((column) => (
                     <td
-                      key={column}
-                      className={`px-6 py-3 text-sm text-[#1a237e] whitespace-nowrap ${getCellStyle(
-                        column
-                      )}`}
+                      key={`${row.id}_${column}`}
+                      className={`px-4 py-2 ${getColumnStyle(column)}`}
                     >
-                      {String(row[column] ?? "")}
+                      {renderCell(row[column], row, column)}
                     </td>
                   ))}
                 </tr>
