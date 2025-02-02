@@ -1,145 +1,130 @@
-import type React from "react"
-import { useState, useEffect } from "react"
-import { IconButton } from "./ui/IconButton"
-import { Avatar } from "./ui/Avatar"
-import { Bell, ChevronDown } from "lucide-react"
-import { NotificationDrawer } from "./NotificationDrawer"
-import { notificationService } from "../services/notificationService"
-import logo from "../assets/images/Logo-Full.svg"
-import type { Notification } from "../services/notificationService"
+import React, { useState, useEffect } from "react";
+import { NotificationDrawer } from "./NotificationDrawer";
+import { ChevronDown } from "lucide-react";
+import logo from "../assets/images/Logo-Full.svg";
 
-interface HeaderProps {
-  firstName: string
-  role: string
-  onLogout: () => void
-}
-
-export const Header: React.FC<HeaderProps> = ({ firstName, role, onLogout }) => {
-  const [showLogout, setShowLogout] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
-  const isAdmin = role.toLowerCase() === 'admin'
+export const Header: React.FC = () => {
+  const [showLogout, setShowLogout] = useState(false);
+  const [userData, setUserData] = useState({
+    firstName: "",
+    lastName: "",
+    role: "",
+    email: "",
+  });
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const userRole = role.toLowerCase() as "maker" | "checker" | "admin"
-        const data = await notificationService.fetchNotifications(userRole)
-        setNotifications(data || [])
-        setUnreadCount((data || []).length)
-      } catch (error) {
-        console.error('Error fetching notifications:', error)
-        setNotifications([])
-        setUnreadCount(0)
-      }
-    }
+    // Get user data from localStorage
+    const firstName = localStorage.getItem("firstName") || "";
+    const lastName = localStorage.getItem("lastName") || "";
+    const role = localStorage.getItem("userRole") || "";
+    const email = localStorage.getItem("userEmail") || "";
+    setUserData({ firstName, lastName, role, email });
+  }, []);
 
-    fetchNotifications()
-    
-    // Set up polling for notifications if admin
-    let pollingInterval: NodeJS.Timeout | null = null
-    if (isAdmin) {
-      pollingInterval = setInterval(fetchNotifications, 30000) // Poll every 30 seconds for admin
-    }
+  const handleLogout = () => {
+    // Clear localStorage
+    localStorage.clear();
+    // Redirect to login
+    window.location.href = "/login";
+  };
 
-    return () => {
-      if (pollingInterval) {
-        clearInterval(pollingInterval)
-      }
-    }
-  }, [role, isAdmin])
+  // Get first letter of first name for avatar
+  const userInitial = userData.firstName.charAt(0).toUpperCase();
 
-  const handleNotificationClick = async () => {
-    setShowNotifications(!showNotifications)
-    if (!showNotifications && notifications.length > 0 && !isAdmin) {
-      // Skip marking as read for admin notifications since they represent ongoing pending changes
-      try {
-        await Promise.all(
-          notifications.map(notification => 
-            notificationService.markAsRead(notification.id || '')
-          )
-        )
-        setUnreadCount(0)
-      } catch (error) {
-        console.error('Error marking notifications as read:', error)
-      }
-    }
-  }
+  // Get background color based on first letter
+  const getAvatarColor = (letter: string) => {
+    const colors = [
+      "bg-blue-500",
+      "bg-green-500",
+      "bg-yellow-500",
+      "bg-purple-500",
+      "bg-pink-500",
+      "bg-indigo-500",
+    ];
+    const index = letter.charCodeAt(0) % colors.length;
+    return colors[index];
+  };
 
   return (
-    <header className=" sticky top-0 z-50">
-      <div className="flex items-center justify-between px-6 py-6">
-        <div className="flex items-center">
-          <img
-            src={logo}
-            alt="Sundaram Mutual"
-            className="h-8"
-          />
-        </div>
-
-        <div className="flex items-center gap-6">
-          <div className="relative">
-            <IconButton
-              icon={<Bell className="w-5 h-5 text-gray-700" />}
-              className="hover:opacity-80 transition-opacity"
-              onClick={handleNotificationClick}
-            />
-            {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 rounded-full flex items-center justify-center">
-                <span className="text-[10px] font-medium text-white">{unreadCount}</span>
-              </span>
-            )}
+    <header className="sticky top-0 z-50 w-full border-b bg-white">
+      <div className="container mx-auto px-4 h-16">
+        <div className="flex items-center justify-between h-full">
+          {/* Logo */}
+          <div className="flex-shrink-0">
+            <img src={logo} alt="Sundaram Mutual" className="h-8" />
           </div>
 
-          <div className="flex items-center gap-3">
-            <Avatar initial={firstName[0]} size="small" />
+          {/* Right side items */}
+          <div className="flex items-center space-x-4">
+            {/* Notification Icon */}
+            <NotificationDrawer role={userData.role as "maker" | "checker"} />
 
-            <div className="flex items-center gap-2">
-              <div>
-                <span className="text-[#6C5DD3] font-medium">{role}</span>
-                <span className="mx-1 text-gray-500">|</span>
-                <span className="text-gray-900">{firstName}</span>
+            {/* User Profile */}
+            <div className="flex items-center">
+              {/* Avatar */}
+              <div
+                className={`w-8 h-8 rounded-full ${getAvatarColor(
+                  userInitial
+                )} flex items-center justify-center text-white font-medium`}
+              >
+                {userInitial}
               </div>
 
-              <IconButton
-                icon={<ChevronDown className="w-5 h-5 text-gray-700" />}
-                onClick={() => setShowLogout(!showLogout)}
-                className={`transition-transform ${showLogout ? "rotate-180" : ""}`}
-              />
-
-              {showLogout && (
-                <div className="absolute right-6 top-14 w-48 bg-white rounded-lg shadow-lg border border-gray-100">
-                  <button
-                    onClick={() => {
-                      onLogout()
-                      setShowLogout(false)
-                    }}
-                    className="flex w-full items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="mr-3">
-                      <path
-                        d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5"
-                        stroke="currentColor"
-                        strokeWidth="1.67"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                    Logout
-                  </button>
+              {/* User Info */}
+              <div className="ml-3 flex items-center">
+                <div className="text-sm">
+                  <span className="text-blue-600 font-medium capitalize">
+                    {userData.role}
+                  </span>
+                  <span className="mx-2 text-gray-300">|</span>
+                  <span className="text-gray-700">{userData.firstName}</span>
                 </div>
-              )}
+
+                {/* Logout Button */}
+                <div className="relative ml-2">
+                  <button
+                    onClick={() => setShowLogout(!showLogout)}
+                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <ChevronDown
+                      className={`w-5 h-5 text-gray-500 transition-transform duration-200 ${
+                        showLogout ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Logout Dropdown */}
+                  {showLogout && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-100">
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-2 text-sm text-left text-gray-700 hover:bg-gray-50 flex items-center"
+                      >
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 20 20"
+                          fill="none"
+                          className="mr-2"
+                        >
+                          <path
+                            d="M13.3333 14.1667L17.5 10M17.5 10L13.3333 5.83333M17.5 10H7.5M7.5 2.5H6.5C5.09987 2.5 4.3998 2.5 3.86502 2.77248C3.39462 3.01217 3.01217 3.39462 2.77248 3.86502C2.5 4.3998 2.5 5.09987 2.5 6.5V13.5C2.5 14.9001 2.5 15.6002 2.77248 16.135C3.01217 16.6054 3.39462 16.9878 3.86502 17.2275C4.3998 17.5 5.09987 17.5 6.5 17.5H7.5"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+                        </svg>
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <NotificationDrawer
-        isOpen={showNotifications}
-        onClose={() => setShowNotifications(false)}
-        notifications={notifications}
-      />
     </header>
-  )
-}
+  );
+};

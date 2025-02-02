@@ -1,92 +1,150 @@
-import React from "react";
+import React, { useState } from "react";
+import { Change } from "../types";
 import {
   Table,
+  TableHeader,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "../../../components/ui/table";
-import { Button } from "../../../components/ui/button";
-import { Checkbox } from "../../../components/ui/checkbox";
-import { Label } from "../../../components/ui/label";
-import { Check, X } from "lucide-react";
-import { TableContentProps } from "../types";
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import { Check, X, ArrowLeft } from "lucide-react";
+import { Pagination } from "@/components/Pagination";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+interface TableContentProps {
+  tableName: string;
+  pendingChanges: Change[];
+  selectedChanges: Record<string, boolean>;
+  setSelectedChanges: (changes: Record<string, boolean>) => void;
+  handleApprove: (rowId: string, requestId: string) => void;
+  handleReject: (id: string) => void;
+  handleApproveAll: () => void;
+  handleRejectAll: () => void;
+  onBack?: () => void;
+}
 
 export function TableContent({
   tableName,
-  tableChanges,
+  pendingChanges,
   selectedChanges,
   setSelectedChanges,
-  handleApproveAll,
-  handleRejectAll,
   handleApprove,
   handleReject,
-  toggleChangeSelection,
+  handleApproveAll,
+  handleRejectAll,
+  onBack,
 }: TableContentProps) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  const tableChanges = pendingChanges.filter(
+    (change) => change.tableName === tableName
+  );
+
+  const totalPages = Math.ceil(tableChanges.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedChanges = tableChanges.slice(
+    startIndex,
+    startIndex + pageSize
+  );
+
+  const handlePageSizeChange = (newSize: string) => {
+    setPageSize(Number(newSize));
+    setCurrentPage(1);
+  };
+
   return (
-    <>
-      <div className="flex items-center gap-4 mb-4">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {onBack && (
+            <button
+              onClick={onBack}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          )}
+          <h2 className="text-lg font-medium">{tableName}</h2>
+        </div>
         <div className="flex items-center gap-2">
           <Checkbox
-            id={`selectAll-${tableName}`}
-            onCheckedChange={(checked: boolean | "indeterminate") => {
-              const newSelected = { ...selectedChanges };
+            id="select-all"
+            checked={
+              Object.keys(selectedChanges).length > 0 &&
+              Object.values(selectedChanges).every(Boolean)
+            }
+            onCheckedChange={(checked) => {
+              const newSelectedChanges: Record<string, boolean> = {};
               tableChanges.forEach((change) => {
-                newSelected[change.id] = checked === true;
+                newSelectedChanges[change.id] = checked === true;
               });
-              setSelectedChanges(newSelected);
+              setSelectedChanges(newSelectedChanges);
             }}
           />
-          <Label
-            htmlFor={`selectAll-${tableName}`}
-            className="text-sm font-medium"
+          <Label htmlFor="select-all">Select All</Label>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleApproveAll}
+            disabled={Object.keys(selectedChanges).length === 0}
           >
-            Select All
-          </Label>
+            <Check className="h-4 w-4 mr-2" />
+            Approve Selected
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleRejectAll}
+            disabled={Object.keys(selectedChanges).length === 0}
+          >
+            <X className="h-4 w-4 mr-2" />
+            Reject Selected
+          </Button>
         </div>
-        <Button size="sm" className="font-medium" onClick={handleApproveAll}>
-          <Check className="h-4 w-4 mr-2" /> Approve All
-        </Button>
-        <Button
-          size="sm"
-          variant="destructive"
-          className="font-medium"
-          onClick={handleRejectAll}
-        >
-          <X className="h-4 w-4 mr-2" /> Reject All
-        </Button>
       </div>
-
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-secondary/5">
-              <TableHead className="w-[50px] font-semibold">No.</TableHead>
-              <TableHead className="w-[120px] font-semibold">Actions</TableHead>
-              <TableHead className="w-[50px] font-semibold">Select</TableHead>
-              <TableHead className="font-semibold">User</TableHead>
-              <TableHead className="font-semibold">Date & Time</TableHead>
-              {tableChanges &&
-                tableChanges.length > 0 &&
-                tableChanges[0]?.rowData &&
-                Object.keys(tableChanges[0].rowData).map(
-                  (columnName, colIndex) => (
-                    <TableHead
-                      key={`${tableName}-${columnName}-${colIndex}`}
-                      className="font-semibold"
-                    >
-                      {columnName}
-                    </TableHead>
-                  )
+      <div className="rounded-md border">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-secondary/5">
+                <TableHead className="w-[50px] font-semibold">No.</TableHead>
+                <TableHead className="w-[120px] font-semibold">
+                  Actions
+                </TableHead>
+                <TableHead className="w-[50px] font-semibold">Select</TableHead>
+                <TableHead className="font-semibold">User</TableHead>
+                <TableHead className="font-semibold">Date & Time</TableHead>
+                {tableChanges.slice(0, 1).map(
+                  (change) =>
+                    change.rowData &&
+                    Object.keys(change.rowData).map((columnName, colIndex) => (
+                      <TableHead
+                        key={`${tableName}-${columnName}-${colIndex}`}
+                        className="font-semibold"
+                      >
+                        {columnName}
+                      </TableHead>
+                    ))
                 )}
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {tableChanges && tableChanges.length > 0 ? (
-              tableChanges.map((change, index) => (
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paginatedChanges.map((change, index) => (
                 <TableRow key={change.id} className="hover:bg-secondary/5">
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">
+                    {startIndex + index + 1}
+                  </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button
@@ -111,19 +169,20 @@ export function TableContent({
                   </TableCell>
                   <TableCell>
                     <Checkbox
-                      checked={selectedChanges[change.id]}
-                      onCheckedChange={() => toggleChangeSelection(change.id)}
+                      checked={selectedChanges[change.id] || false}
+                      onCheckedChange={() => {
+                        setSelectedChanges({
+                          ...selectedChanges,
+                          [change.id]: !selectedChanges[change.id],
+                        });
+                      }}
                     />
                   </TableCell>
-                  <TableCell>
-                    <div className="whitespace-nowrap font-medium">
-                      {change.user}
-                    </div>
+                  <TableCell className="whitespace-nowrap font-medium">
+                    {change.user}
                   </TableCell>
-                  <TableCell>
-                    <div className="whitespace-nowrap text-muted-foreground">
-                      {change.dateTime}
-                    </div>
+                  <TableCell className="whitespace-nowrap text-muted-foreground">
+                    {change.dateTime}
                   </TableCell>
                   {change.rowData &&
                     Object.keys(change.rowData).map((columnName, colIndex) => {
@@ -153,25 +212,40 @@ export function TableContent({
                       );
                     })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={
-                    5 +
-                    (tableChanges?.[0]?.rowData
-                      ? Object.keys(tableChanges[0].rowData).length
-                      : 0)
-                  }
-                  className="h-24 text-center"
-                >
-                  No changes found.
-                </TableCell>
-              </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        {tableChanges.length > 0 && (
+          <div className="border-t p-2 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Rows per page:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={handlePageSizeChange}
+              >
+                <SelectTrigger className="w-[70px]">
+                  <SelectValue placeholder="10" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5</SelectItem>
+                  <SelectItem value="10">10</SelectItem>
+                  <SelectItem value="20">20</SelectItem>
+                  <SelectItem value="50">50</SelectItem>
+                  <SelectItem value="100">100</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             )}
-          </TableBody>
-        </Table>
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 }

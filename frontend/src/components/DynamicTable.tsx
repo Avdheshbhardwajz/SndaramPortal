@@ -1,210 +1,280 @@
-import React, { useState } from 'react'
-import { Pagination } from './Pagination'
-import { useTableData } from '../hooks/useTableData'
-import { useColumnPermissions } from '../hooks/useColumnPermissions'
-import { EditRowDrawer } from './EditRowDrawer'
-import { TableHeader } from './table/TableHeader'
-import { TableColumnHeader } from './table/TableColumnHeader'
-import { TableBody } from './table/TableBody'
-import type { FilterCondition } from './TableFilter'
-import { requestRowEdit } from '../services/tableDataService'
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { useTableData } from "../hooks/useTableData";
+import { useColumnPermissions } from "../hooks/useColumnPermissions";
+import { EditRowDrawer } from "./EditRowDrawer";
+import { requestRowEdit } from "../services/tableDataService";
+import { Pagination } from "./Pagination";
 
-interface DynamicTableProps {
-  tableName: string
-  pageSize?: number
-  onRowEdit?: (updatedRow: Record<string, any>) => void
+interface ColumnStatus {
+  column_name: string;
+  column_status: "editable" | "non-editable";
 }
 
-// Helper function to determine column type
-const getColumnType = (value: any): 'text' | 'number' | 'date' => {
-  if (typeof value === 'number') return 'number'
-  if (value instanceof Date) return 'date'
-  return 'text'
+interface DynamicTableProps {
+  tableName: string;
+  pageSize: number;
 }
 
 export const DynamicTable: React.FC<DynamicTableProps> = ({
   tableName,
   pageSize,
-  onRowEdit
 }) => {
   const {
-    processedData,
+    data: processedData,
     columns,
-    currentPage,
-    totalPages,
     isLoading: isDataLoading,
     error: dataError,
-    sortConfig,
-    handleSort,
-    handleSearch,
-    handlePageChange,
-    handleFilter,
     refresh: refreshData,
-  } = useTableData({ tableName, pageSize })
+    totalPages,
+    currentPage,
+    setCurrentPage,
+  } = useTableData({ tableName, pageSize });
 
   const {
     isColumnEditable,
-    getEditableColumns,
+    columnStatuses,
     isLoading: isPermissionsLoading,
-    error: permissionsError
-  } = useColumnPermissions(tableName)
+    error: permissionsError,
+  } = useColumnPermissions(tableName);
 
-  const [selectedRow, setSelectedRow] = useState<Record<string, any> | null>(null)
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeFilters, setActiveFilters] = useState<Record<string, FilterCondition>>({})
-  const [filterColumn, setFilterColumn] = useState<string | null>(null)
-  const [isAddMode, setIsAddMode] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [selectedRow, setSelectedRow] = useState<Record<
+    string,
+    unknown
+  > | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isAddMode, setIsAddMode] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  const handleEditClick = (row: Record<string, any>) => {
-    setSelectedRow(row)
-    setIsAddMode(false)
-    setIsDrawerOpen(true)
-  }
+  const handleEditClick = (row: Record<string, unknown>) => {
+    setSelectedRow(row);
+    setIsAddMode(false);
+    setIsDrawerOpen(true);
+  };
 
   const handleAddClick = () => {
-    setSelectedRow({})
-    setIsAddMode(true)
-    setIsDrawerOpen(true)
-  }
+    setSelectedRow({});
+    setIsAddMode(true);
+    setIsDrawerOpen(true);
+  };
 
   const handleDrawerClose = () => {
-    setSelectedRow(null)
-    setIsAddMode(false)
-    setIsDrawerOpen(false)
-    setError(null)
-  }
+    setSelectedRow(null);
+    setIsAddMode(false);
+    setIsDrawerOpen(false);
+    setError(null);
+  };
 
-  const handleRowSave = async (updatedRow: Record<string, any>) => {
+  const handleRowSave = async (updatedRow: Record<string, unknown>) => {
     try {
-      setError(null)
-      
+      setError(null);
+
       if (!selectedRow) {
-        throw new Error('No row selected for editing')
+        throw new Error("No row selected for editing");
       }
 
       const editData = {
         table_name: tableName,
-        row_id: String(selectedRow.id || selectedRow[`${tableName}_sk`] || selectedRow[`${tableName}_id`]),
+        row_id: String(
+          selectedRow.id ||
+            selectedRow[`${tableName}_sk`] ||
+            selectedRow[`${tableName}_id`]
+        ),
         old_values: selectedRow,
         new_values: updatedRow,
-        table_id: tableName
-      }
+        table_id: tableName,
+      };
 
-      const response = await requestRowEdit(editData)
+      const response = await requestRowEdit(editData);
 
       if (response.success) {
-        if (onRowEdit) {
-          onRowEdit(updatedRow)
-        }
-        handleDrawerClose()
-        // Refresh the table data to show the pending status
-        refreshData()
+        handleDrawerClose();
+        refreshData();
       } else {
-        setError(response.message || 'Failed to submit edit request')
+        setError(response.message || "Failed to submit edit request");
       }
     } catch (err) {
-      console.error('Error saving row:', err)
-      setError(err instanceof Error ? err.message : 'Failed to save changes')
+      console.error("Error saving row:", err);
+      setError(err instanceof Error ? err.message : "Failed to save changes");
     }
-  }
+  };
 
-  const handleFilterClick = (column: string) => {
-    setFilterColumn(filterColumn === column ? null : column)
-  }
-
-  const handleFilterApply = (column: string, condition: FilterCondition) => {
-    const newFilters = { ...activeFilters }
-    if (condition.value === null) {
-      delete newFilters[column]
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      newFilters[column] = condition
+      setSortColumn(columnKey);
+      setSortDirection("asc");
     }
-    setActiveFilters(newFilters)
-    handleFilter(newFilters)
-    setFilterColumn(null)
-  }
+  };
+
+  // Function to determine column background color
+  const getColumnStyle = (column: string) => {
+    if (
+      !columnStatuses.some(
+        (status: ColumnStatus) => status.column_name === column
+      )
+    ) {
+      return "bg-[#e3f2fd]"; // Light blue for columns not in API response
+    }
+    if (!isColumnEditable(column)) {
+      return "bg-[#e8eaf6]"; // Indigo 50 for non-editable columns
+    }
+    return "bg-white"; // Default background for editable columns
+  };
+
+  // Function to determine cell background color
+  const getCellStyle = (column: string) => {
+    if (
+      !columnStatuses.some(
+        (status: ColumnStatus) => status.column_name === column
+      )
+    ) {
+      return "bg-[#e3f2fd]/50"; // Lighter blue for cells not in API response
+    }
+    if (!isColumnEditable(column)) {
+      return "bg-[#e8eaf6]/50"; // Lighter indigo for non-editable cells
+    }
+    return ""; // Default background for editable cells
+  };
 
   if (isDataLoading || isPermissionsLoading) {
-    return <div>Loading...</div>
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00bfa5]"></div>
+      </div>
+    );
   }
 
   if (dataError || permissionsError) {
-    return <div>Error loading table data</div>
+    return (
+      <div className="text-red-600 p-4 text-center bg-red-50 rounded-lg">
+        Error loading table data
+      </div>
+    );
   }
 
-  // Use all columns for display
-  const displayColumns = columns
-
   return (
-    <div className="bg-white rounded-lg shadow">
-      <TableHeader
-        onSearch={handleSearch}
-        onAddClick={handleAddClick}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-      />
+    <div className="flex flex-col h-full max-h-[calc(100vh-200px)]">
+      {error && (
+        <div className="m-4 p-4 text-red-600 bg-red-50 rounded-lg">{error}</div>
+      )}
 
-      <div className="overflow-x-auto" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              {/* Action Column Header */}
-              <th className="px-6 py-3 bg-gray-50 text-left text-xs font-medium text-gray-500 uppercase tracking-wider sticky left-0 z-10">
-                Action
-              </th>
-              {displayColumns.map((column) => (
-                <TableColumnHeader
-                  key={column}
-                  column={column}
-                  sortConfig={sortConfig}
-                  onSort={handleSort}
-                  onFilterClick={handleFilterClick}
-                  isFilterActive={!!activeFilters[column]}
-                  isFilterOpen={filterColumn === column}
-                  onFilterApply={handleFilterApply}
-                  type={getColumnType(processedData[0]?.[column])}
-                  className={!isColumnEditable(column) ? 'bg-gray-50' : ''}
-                />
+      <div className="flex flex-col flex-1 bg-white rounded-lg border border-[#e3f2fd] overflow-hidden">
+        {/* Single scroll container for both header and body */}
+        <div className="flex-1 overflow-auto scrollbar-thin scrollbar-thumb-[#e3f2fd] scrollbar-track-transparent">
+          <table className="w-full border-collapse min-w-max">
+            {/* Fixed header */}
+            <thead className="sticky top-0 z-20">
+              <tr className="bg-[#f8fafc] border-b border-[#e3f2fd]">
+                <th className="sticky left-0 z-20 bg-[#f8fafc] px-4 py-3 text-left text-sm font-medium text-[#1a237e] w-[80px]">
+                  Action
+                </th>
+                {columns.map((column) => (
+                  <th
+                    key={column}
+                    className={`px-6 py-3 text-left text-sm font-medium text-[#1a237e] ${getColumnStyle(
+                      column
+                    )}`}
+                  >
+                    <div
+                      className="flex items-center gap-2 cursor-pointer group whitespace-nowrap"
+                      onClick={() => handleSort(column)}
+                    >
+                      {column}
+                      <div className="flex flex-col opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ChevronUp
+                          className={`h-3 w-3 -mb-1 ${
+                            sortColumn === column && sortDirection === "asc"
+                              ? "text-[#00bfa5]"
+                              : "text-gray-400"
+                          }`}
+                        />
+                        <ChevronDown
+                          className={`h-3 w-3 ${
+                            sortColumn === column && sortDirection === "desc"
+                              ? "text-[#00bfa5]"
+                              : "text-gray-400"
+                          }`}
+                        />
+                      </div>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            {/* Table body */}
+            <tbody className="divide-y divide-[#e3f2fd]">
+              {processedData.map((row, index) => (
+                <tr
+                  key={index}
+                  className="hover:bg-[#f8fafc] transition-colors even:bg-gray-50"
+                >
+                  <td className="sticky left-0 z-10 bg-inherit px-4 py-3 w-[80px]">
+                    <button
+                      className="p-1.5 hover:bg-[#e3f2fd] rounded-lg transition-colors"
+                      onClick={() => handleEditClick(row)}
+                    >
+                      <svg
+                        className="w-5 h-5 text-[#00bfa5]"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                      >
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </button>
+                  </td>
+                  {columns.map((column) => (
+                    <td
+                      key={column}
+                      className={`px-6 py-3 text-sm text-[#1a237e] whitespace-nowrap ${getCellStyle(
+                        column
+                      )}`}
+                    >
+                      {String(row[column] ?? "")}
+                    </td>
+                  ))}
+                </tr>
               ))}
-            </tr>
-          </thead>
-          <TableBody
-            data={processedData}
-            columns={displayColumns}
-            onEditClick={handleEditClick}
-            isEditable={isColumnEditable}
-          />
-        </table>
-      </div>
-
-      <div className="px-6 py-4 flex justify-between items-center border-t border-gray-200">
-        <div className="text-sm text-gray-500">
-          Showing {processedData.length} results
+            </tbody>
+          </table>
         </div>
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-        />
+
+        {/* Pagination - Fixed at bottom */}
+        {totalPages > 1 && (
+          <div className="border-t border-[#e3f2fd] bg-white py-3 px-4">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+            />
+          </div>
+        )}
       </div>
 
+      {/* Add Row Button */}
+      <button
+        onClick={handleAddClick}
+        className="fixed bottom-6 right-6 w-12 h-12 bg-[#00bfa5] text-white rounded-full shadow-lg hover:bg-[#00bfa5]/90 transition-colors flex items-center justify-center z-30"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
+
+      {/* Edit Drawer */}
       <EditRowDrawer
         isOpen={isDrawerOpen}
         onClose={handleDrawerClose}
         row={selectedRow}
-        columns={displayColumns}
+        columns={columns}
         onSave={handleRowSave}
-        mode={isAddMode ? 'add' : 'edit'}
+        mode={isAddMode ? "add" : "edit"}
         isColumnEditable={isColumnEditable}
       />
-      
-      {error && (
-        <div className="fixed bottom-4 right-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-          {error}
-        </div>
-      )}
     </div>
-  )
-}
+  );
+};

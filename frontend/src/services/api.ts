@@ -1,12 +1,12 @@
-import axios from 'axios';
-import { RequestDataPayload, RequestDataResponse } from '../types/requestData';
-import { ChangeTrackerResponse } from '../types/checkerData';
+import axios from "axios";
+import { RequestDataPayload, RequestDataResponse } from "../types/requestData";
+import { ChangeTrackerResponse } from "../types/checkerData";
 
 interface ChangeTrackerData {
   table_name: string;
   old_data: Record<string, unknown>;
   new_data: Record<string, unknown>;
-  status: 'pending' | 'approved' | 'rejected';
+  status: "pending" | "approved" | "rejected";
   maker: string;
   checker: string | null;
   created_at: string;
@@ -23,23 +23,32 @@ interface ApproveRejectResponse {
   data?: ChangeTrackerData;
 }
 
-const API_BASE_URL = 'http://localhost:8080';
+interface CheckerNotification {
+  table_name: string;
+  maker: string;
+  created_at: string;
+  pending_count: number;
+}
+
+const API_BASE_URL = "http://localhost:8080";
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found');
+    throw new Error("No authentication token found");
   }
   return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
 };
 
-export const submitRequestData = async (payload: RequestDataPayload): Promise<RequestDataResponse> => {
+export const submitRequestData = async (
+  payload: RequestDataPayload
+): Promise<RequestDataResponse> => {
   try {
     const response = await axios.post(`${API_BASE_URL}/requestdata`, payload, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
     return response.data;
   } catch (error) {
@@ -47,16 +56,20 @@ export const submitRequestData = async (payload: RequestDataPayload): Promise<Re
   }
 };
 
-export const fetchChangeTrackerData = async (): Promise<ChangeTrackerResponse> => {
-  try {
-    const response = await axios.get<ChangeTrackerResponse>(`${API_BASE_URL}/fetchchangetrackerdata`, {
-      headers: getAuthHeaders()
-    });
-    return response.data;
-  } catch (error) {
-    throw handleApiError(error);
-  }
-};
+export const fetchChangeTrackerData =
+  async (): Promise<ChangeTrackerResponse> => {
+    try {
+      const response = await axios.get<ChangeTrackerResponse>(
+        `${API_BASE_URL}/fetchchangetrackerdata`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
+      return response.data;
+    } catch (error) {
+      throw handleApiError(error);
+    }
+  };
 
 export const approveChange = async (
   row_id: string,
@@ -69,7 +82,7 @@ export const approveChange = async (
       {
         row_id,
         request_id,
-        comments
+        comments,
       },
       { headers: getAuthHeaders() }
     );
@@ -91,15 +104,15 @@ export const rejectChange = async (
       `${API_BASE_URL}/reject`,
       {
         row_id,
-        comments: comments
+        comments: comments,
       },
       { headers: getAuthHeaders() }
     );
-    
+
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Failed to reject change');
+      throw new Error(response.data.message || "Failed to reject change");
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -115,18 +128,18 @@ export const approveAllChanges = async (
 ): Promise<ApproveRejectResponse> => {
   try {
     const response = await axios.post<ApproveRejectResponse>(
-      `${API_BASE_URL}/approveall`,
+      `${API_BASE_URL}/allApprove`,
       {
         row_ids: rowIds,
-        comments
+        comments,
       },
       { headers: getAuthHeaders() }
     );
-    
+
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Failed to approve changes');
+      throw new Error(response.data.message || "Failed to approve changes");
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -142,18 +155,18 @@ export const rejectAllChanges = async (
 ): Promise<ApproveRejectResponse> => {
   try {
     const response = await axios.post<ApproveRejectResponse>(
-      `${API_BASE_URL}/rejectall`,
+      `${API_BASE_URL}/allReject`,
       {
         row_ids: rowIds,
-        comments: comments
+        comments: comments,
       },
       { headers: getAuthHeaders() }
     );
-    
+
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Failed to reject changes');
+      throw new Error(response.data.message || "Failed to reject changes");
     }
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -169,7 +182,7 @@ export const fetchCheckerActivities = async (): Promise<{
     id: string;
     request_id: string;
     table_name: string;
-    status: 'approved' | 'rejected';
+    status: "approved" | "rejected";
     updated_at: string;
     reason?: string;
     comments?: string;
@@ -178,9 +191,9 @@ export const fetchCheckerActivities = async (): Promise<{
   }>;
 }> => {
   try {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (!token) {
-      throw new Error('No authentication token found');
+      throw new Error("No authentication token found");
     }
 
     const response = await axios.post(
@@ -188,16 +201,60 @@ export const fetchCheckerActivities = async (): Promise<{
       {},
       {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       }
     );
 
     if (response.data.success) {
       return response.data;
     } else {
-      throw new Error(response.data.message || 'Failed to fetch checker activities');
+      throw new Error(
+        response.data.message || "Failed to fetch checker activities"
+      );
+    }
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const fetchGroupList = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/getgrouplist`, {
+      headers: getAuthHeaders(),
+    });
+
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(response.data.message || "Failed to fetch group list");
+    }
+  } catch (error) {
+    throw handleApiError(error);
+  }
+};
+
+export const fetchCheckerNotifications = async (
+  role: "checker" | "maker"
+): Promise<{
+  success: boolean;
+  data: CheckerNotification[];
+}> => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/checker-notification`, {
+      headers: {
+        ...getAuthHeaders(),
+        "X-User-Role": role,
+      },
+    });
+
+    if (response.data.success) {
+      return response.data;
+    } else {
+      throw new Error(
+        response.data.message || "Failed to fetch checker notifications"
+      );
     }
   } catch (error) {
     throw handleApiError(error);

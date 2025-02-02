@@ -1,241 +1,221 @@
-import React, { useState, useEffect, useRef } from "react"
-import { useNavigate } from "react-router-dom"
-import { Header } from "../components/Header"
-import { TableCard } from "../components/TableCard"
-import { Pagination } from "../components/Pagination"
-import { DynamicTable } from "../components/DynamicTable"
-import { PageSizeSelector } from "../components/PageSizeSelector"
-import { fetchTables } from "../services/tableService"
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { Layout } from "../components/Layout";
+import { DynamicTable } from "../components/DynamicTable";
+import { PageSizeSelector } from "../components/PageSizeSelector";
+import { fetchTables } from "../services/tableService";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Table {
   table_name: string;
 }
 
 export const TablesPage: React.FC = () => {
-  const [tables, setTables] = useState<Table[]>([])
-  const [searchQuery, setSearchQuery] = useState("")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [selectedTable, setSelectedTable] = useState<string | null>(null)
-  const [pageSize, setPageSize] = useState(10)
-  const [tableKey, setTableKey] = useState(0)
-  const [tablesPerPage, setTablesPerPage] = useState(12) // Default to 12 tables
-  const gridRef = useRef<HTMLDivElement>(null)
+  const [tables, setTables] = useState<Table[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedTable, setSelectedTable] = useState<string | null>(null);
+  const [pageSize, setPageSize] = useState(10);
+  const [tableKey, setTableKey] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(15);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  const navigate = useNavigate()
-  const firstName = localStorage.getItem("firstName") || ""
-  const role = localStorage.getItem("userRole") || ""
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadTables()
-  }, [])
+    loadTables();
+  }, []);
 
-  // Calculate tables per page based on viewport height
+  // Calculate items per page based on container height
   useEffect(() => {
-    const calculateTablesPerPage = () => {
-      if (gridRef.current) {
-        const gridRect = gridRef.current.getBoundingClientRect()
-        const viewportHeight = window.innerHeight
-        const availableHeight = viewportHeight - gridRect.top - 20 // Reduced margin
-        const cardHeight = 90 // Reduced card height
-        const cardGap = 16 // Gap between cards
-        const rows = Math.floor((availableHeight + cardGap) / (cardHeight + cardGap))
-        const cols = window.innerWidth >= 1536 ? 4 : window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1
-        const calculatedTablesPerPage = rows * cols
-        setTablesPerPage(Math.max(calculatedTablesPerPage, 8)) // Minimum 8 tables
-        setCurrentPage(1)
+    const calculateItemsPerPage = () => {
+      if (containerRef.current) {
+        // Account for header (64px), breadcrumb (48px), margins and padding
+        const headerHeight = 64;
+        const breadcrumbHeight = 48;
+        const margins = 48; // Total vertical margins
+        const availableHeight =
+          window.innerHeight - (headerHeight + breadcrumbHeight + margins);
+
+        const itemHeight = 60; // Height of each table card
+        const gap = 16; // Gap between cards
+        const totalItemHeight = itemHeight + gap;
+
+        const columns =
+          window.innerWidth >= 1280 ? 3 : window.innerWidth >= 768 ? 2 : 1;
+        const rows = Math.floor(availableHeight / totalItemHeight);
+        const calculatedItems = rows * columns;
+
+        // Set minimum items based on screen size
+        const minItems = columns * 3; // At least 3 rows
+        setItemsPerPage(Math.max(calculatedItems, minItems));
       }
-    }
+    };
 
-    calculateTablesPerPage()
-    window.addEventListener('resize', calculateTablesPerPage)
-    return () => window.removeEventListener('resize', calculateTablesPerPage)
-  }, [])
+    calculateItemsPerPage();
+    window.addEventListener("resize", calculateItemsPerPage);
+    return () => window.removeEventListener("resize", calculateItemsPerPage);
+  }, []);
 
   const loadTables = async () => {
-    setIsLoading(true)
-    setError(null)
+    setIsLoading(true);
+    setError(null);
     try {
-      const response = await fetchTables()
+      const response = await fetchTables();
       if (response.success) {
-        setTables(response.tables)
+        setTables(response.tables);
       } else {
-        setError(response.message || "Failed to fetch tables")
+        setError(response.message || "Failed to fetch tables");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred while fetching tables")
+      setError(
+        err instanceof Error
+          ? err.message
+          : "An error occurred while fetching tables"
+      );
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
-
-  const handleLogout = () => {
-    localStorage.clear()
-    navigate("/")
-  }
+  };
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(event.target.value)
-    setCurrentPage(1)
-  }
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page)
-  }
+    setSearchQuery(event.target.value);
+    setCurrentPage(1);
+  };
 
   const handlePageSizeChange = (newSize: number) => {
-    setPageSize(newSize)
-    setTableKey(prev => prev + 1)
-  }
+    setPageSize(newSize);
+    setTableKey((prev) => prev + 1);
+  };
 
-  const handleRowEdit = async (updatedRow: Record<string, any>) => {
-    try {
-      // TODO: Implement API call to update the row
-      console.log('Updated row:', updatedRow)
-      
-      // Optionally refresh the table data after successful update
-      // You can implement this using your data fetching logic
-    } catch (error) {
-      console.error('Error updating row:', error)
-    }
-  }
-
-  const filteredTables = tables.filter((table) => 
+  const filteredTables = tables.filter((table) =>
     table.table_name.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  );
 
-  const totalPages = Math.ceil(filteredTables.length / tablesPerPage)
-  const startIndex = (currentPage - 1) * tablesPerPage
-  const displayedTables = filteredTables.slice(startIndex, startIndex + tablesPerPage)
+  const totalPages = Math.ceil(filteredTables.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const displayedTables = filteredTables.slice(
+    startIndex,
+    startIndex + itemsPerPage
+  );
 
   if (isLoading) {
     return (
-      <div className="h-screen bg-white flex flex-col">
-        <Header firstName={firstName} role={role} onLogout={handleLogout} />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </main>
-      </div>
-    )
+      <Layout>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#00bfa5]"></div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
-    <div className="h-screen bg-white flex flex-col overflow-hidden">
-      <Header firstName={firstName} role={role} onLogout={handleLogout} />
-
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <div className="px-8 py-4 flex-shrink-0">
-          {/* Top Bar with Breadcrumb and Search */}
-          <div className="max-w-[1400px] mx-auto flex items-center justify-between ">
-            {/* Breadcrumb */}
+    <Layout>
+      <div className="h-full flex flex-col">
+        {/* Breadcrumb and Search - Hidden when table is selected */}
+        {!selectedTable && (
+          <div className="flex items-center justify-between h-12 mb-4 px-6">
             <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (selectedTable) {
-                    setSelectedTable(null)
-                  } else {
-                    navigate("/dashboard")
-                  }
-                }}
-                className="text-gray-600 hover:text-gray-800 flex items-center gap-2"
+                onClick={() => navigate("/dashboard")}
+                className="text-[#1a237e] hover:text-[#283593] flex items-center transition-colors"
               >
-                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M15 19L8 12L15 5"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {selectedTable ? 'Back to Tables' : 'Home'}
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Home
               </button>
               <span className="text-gray-400">/</span>
-              <span className="text-blue-600 font-medium">
-                {selectedTable ? selectedTable : 'Data Management'}
-              </span>
+              <span className="text-[#00bfa5]">Data Management</span>
             </div>
 
-            {/* Search Bar - Only show when no table is selected */}
-            {!selectedTable && (
-              <div className="relative w-[300px]">
-                <input
-                  type="text"
-                  placeholder="Search table here..."
-                  value={searchQuery}
-                  onChange={handleSearch}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+            <div className="relative w-[300px]">
+              <input
+                type="text"
+                placeholder="Search table here..."
+                value={searchQuery}
+                onChange={handleSearch}
+                className="w-full px-4 py-2 bg-white rounded-lg border border-[#e3f2fd] focus:outline-none focus:ring-2 focus:ring-[#00bfa5] focus:border-transparent transition-all"
+              />
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="text-red-600 p-4 text-center bg-red-50 rounded-lg mx-6 mb-4">
+            {error}
+          </div>
+        )}
+
+        {selectedTable ? (
+          <div className="flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-2 px-6">
+              <button
+                onClick={() => setSelectedTable(null)}
+                className="flex items-center text-[#1a237e] hover:text-[#283593] transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4 mr-1" />
+                Back to Tables
+              </button>
+              <PageSizeSelector
+                pageSize={pageSize}
+                onPageSizeChange={handlePageSizeChange}
+              />
+            </div>
+            <div className="flex-1 min-h-0 p-4">
+              <DynamicTable
+                key={tableKey}
+                tableName={selectedTable}
+                pageSize={pageSize}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex flex-col min-h-0 px-6">
+            <div
+              ref={containerRef}
+              className="flex-1 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min content-start"
+            >
+              {displayedTables.map((table) => (
+                <button
+                  key={table.table_name}
+                  onClick={() => setSelectedTable(table.table_name)}
+                  className="flex items-center justify-between p-4 bg-white rounded-lg border border-[#e3f2fd] hover:border-[#00bfa5] hover:shadow-lg transition-all text-left h-[60px] group"
+                >
+                  <span className="text-[#1a237e] font-medium group-hover:text-[#283593]">
+                    {table.table_name}
+                  </span>
+                  <ArrowRight className="h-4 w-4 text-[#00bfa5] group-hover:translate-x-1 transition-transform" />
+                </button>
+              ))}
+            </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-4 py-2">
+                <button
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg border border-[#e3f2fd] hover:border-[#00bfa5] disabled:opacity-50 disabled:hover:border-[#e3f2fd] transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4 text-[#1a237e]" />
+                </button>
+                <span className="text-[#1a237e]">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg border border-[#e3f2fd] hover:border-[#00bfa5] disabled:opacity-50 disabled:hover:border-[#e3f2fd] transition-colors"
+                >
+                  <ArrowRight className="h-4 w-4 text-[#1a237e]" />
+                </button>
               </div>
             )}
           </div>
+        )}
+      </div>
+    </Layout>
+  );
+};
 
-          {/* Error State */}
-          {error && (
-            <div className="max-w-[1400px] mx-auto">
-              <div className="text-red-600 p-4 text-center bg-red-50 rounded-lg mb-6">
-                {error}
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-hidden px-6">
-          <div className="max-w-[1600px] mx-auto h-full">
-            {selectedTable ? (
-              <div className="h-full flex flex-col">
-                <div className="flex-shrink-0 mb-4">
-                  <PageSizeSelector
-                    pageSize={pageSize}
-                    onPageSizeChange={handlePageSizeChange}
-                  />
-                </div>
-                <div className="flex-1 min-h-0 ">
-                  <DynamicTable
-                    key={tableKey}
-                    tableName={selectedTable}
-                    pageSize={pageSize}
-                    onRowEdit={handleRowEdit}
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="h-full flex flex-col">
-                <div className="flex-1 overflow-auto">
-                  {/* Grid of Table Cards */}
-                  <div 
-                    ref={gridRef}
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-max"
-                  >
-                    {displayedTables.map((table) => (
-                      <TableCard
-                        key={table.table_name}
-                        tableName={table.table_name}
-                        onClick={() => setSelectedTable(table.table_name)}
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                {/* Only show pagination if there are more tables than can fit */}
-                {totalPages > 1 && filteredTables.length > tablesPerPage && (
-                  <div className="flex-shrink-0 pt-3 border-t mt-3">
-                    <Pagination
-                      currentPage={currentPage}
-                      totalPages={totalPages}
-                      onPageChange={handlePageChange}
-                    />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </main>
-    </div>
-  )
-}
-
-export default TablesPage
+export default TablesPage;
