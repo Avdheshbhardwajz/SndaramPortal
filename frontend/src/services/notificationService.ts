@@ -8,11 +8,13 @@ export interface Notification {
   status: string;
   approver: string;
   updated_at: string;
-  old_data?: Record<string, any>;
-  new_data?: Record<string, any>;
-  data?: Record<string, any>;
+  old_data?: Record<string, unknown>;
+  new_data?: Record<string, unknown>;
+  data?: Record<string, unknown>;
   comments?: string;
   isAdminNotification?: boolean;
+  maker?: string;
+  pending_count?: number;
 }
 
 interface AdminNotification {
@@ -29,6 +31,12 @@ interface NotificationResponse {
   message?: string;
 }
 
+const NOTIFICATION_ENDPOINTS = {
+  ADMIN: "/admin-notification",
+  MAKER: "/maker-notification",
+  CHECKER: "/checker-notification",
+} as const;
+
 export const notificationService = {
   async fetchNotifications(
     role: "maker" | "checker" | "admin"
@@ -42,8 +50,8 @@ export const notificationService = {
 
     try {
       const endpoint =
-        ENDPOINTS.NOTIFICATIONS[
-          role.toUpperCase() as keyof typeof ENDPOINTS.NOTIFICATIONS
+        NOTIFICATION_ENDPOINTS[
+          role.toUpperCase() as keyof typeof NOTIFICATION_ENDPOINTS
         ];
       const response = await fetch(`${API_URL}${endpoint}`, {
         method: "GET",
@@ -70,7 +78,7 @@ export const notificationService = {
         // Transform admin notifications to match the expected format
         return responseData.data.map((adminNotif) => ({
           id: `${adminNotif.table_name}-${adminNotif.maker}`,
-          request_id: adminNotif.maker,
+          request_id: `${adminNotif.table_name}-${adminNotif.maker}`,
           type: "change",
           table_name: adminNotif.table_name,
           status: "pending",
@@ -78,6 +86,8 @@ export const notificationService = {
           updated_at: adminNotif.created_at,
           comments: `${adminNotif.pending_count} pending changes`,
           isAdminNotification: true,
+          maker: adminNotif.maker,
+          pending_count: adminNotif.pending_count,
         }));
       }
 

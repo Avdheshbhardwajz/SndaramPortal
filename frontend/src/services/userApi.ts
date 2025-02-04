@@ -4,7 +4,27 @@ interface ErrorResponse {
   message?: string;
 }
 
-export type UserRole = "maker" | "checker" | "admin";
+// interface UserActiveResponse {
+//   user_id: string;
+//   active: boolean;
+//   updated_at: string;
+// }
+
+interface CellHighlight {
+  row_id: string;
+  changed_fields: string[];
+}
+
+interface HighlightResponse {
+  success: boolean;
+  data: CellHighlight[];
+  message?: string;
+  error?: string;
+}
+
+const API_BASE_URL = "http://localhost:8080";
+
+export type UserRole = "maker" | "checker";
 
 export interface User {
   id?: number;
@@ -16,41 +36,32 @@ export interface User {
   isDisabled?: boolean;
 }
 
-export interface UserApiResponse {
-  user_id: number;
-  first_name: string;
-  last_name: string;
-  email: string;
-  role: UserRole;
-  active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-const API_BASE_URL = "http://localhost:8080";
-
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error('No authentication token found');
+    throw new Error("No authentication token found");
   }
   return {
-    'Authorization': `Bearer ${token}`,
-    'Content-Type': 'application/json'
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
   };
 };
 
 export const createUser = async (userData: User) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/signup`, {
-      email: userData.email,
-      password: userData.password,
-      role: userData.role,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-    }, {
-      headers: getAuthHeaders()
-    });
+    const response = await axios.post(
+      `${API_BASE_URL}/signup`,
+      {
+        email: userData.email,
+        password: userData.password,
+        role: userData.role,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -63,25 +74,8 @@ export const createUser = async (userData: User) => {
 export const getAllUsers = async () => {
   try {
     const response = await axios.get(`${API_BASE_URL}/users`, {
-      headers: getAuthHeaders()
+      headers: getAuthHeaders(),
     });
-    
-    if (response.data.success && Array.isArray(response.data.data)) {
-      const transformedData = response.data.data.map((user: any) => ({
-        id: user.user_id,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        email: user.email,
-        role: user.role,
-        isDisabled: !user.active
-      }));
-      return {
-        success: true,
-        data: transformedData,
-        message: response.data.message
-      };
-    }
-    
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -93,15 +87,19 @@ export const getAllUsers = async () => {
 
 export const updateUser = async (userId: string, userData: Partial<User>) => {
   try {
-    const response = await axios.put(`${API_BASE_URL}/users/${userId}`, {
-      email: userData.email,
-      role: userData.role,
-      first_name: userData.firstName,
-      last_name: userData.lastName,
-      password: userData.password,
-    }, {
-      headers: getAuthHeaders()
-    });
+    const response = await axios.put(
+      `${API_BASE_URL}/users/${userId}`,
+      {
+        email: userData.email,
+        role: userData.role,
+        first_name: userData.firstName,
+        last_name: userData.lastName,
+        password: userData.password,
+      },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
     return response.data;
   } catch (error) {
     const axiosError = error as AxiosError<ErrorResponse>;
@@ -124,5 +122,24 @@ export const toggleUserActive = async (email: string) => {
     throw new Error(
       axiosError.response?.data?.message || "Failed to toggle user status"
     );
+  }
+};
+
+export const getHighlightedCells = async (
+  tableName: string
+): Promise<HighlightResponse> => {
+  try {
+    const response = await axios.post<HighlightResponse>(
+      `${API_BASE_URL}/highlight-cells`,
+      { tableName },
+      {
+        headers: getAuthHeaders(),
+      }
+    );
+
+    return response.data;
+  } catch (error) {
+    console.error("Error in getHighlightedCells:", error);
+    throw error;
   }
 };

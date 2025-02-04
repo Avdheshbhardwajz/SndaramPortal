@@ -1,4 +1,4 @@
-import { User, UserRole } from '../services/userApi';
+import { User, UserRole } from "@/services/userApi";
 
 export interface UserApiResponse {
   user_id: number;

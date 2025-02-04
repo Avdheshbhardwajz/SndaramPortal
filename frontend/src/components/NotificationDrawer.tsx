@@ -23,10 +23,13 @@ interface Notification {
   data?: Record<string, unknown>;
   comments: string | null;
   request_id: string;
+  maker?: string;
+  pending_count?: number;
+  isAdminNotification?: boolean;
 }
 
 interface NotificationDrawerProps {
-  role: "checker" | "maker";
+  role: "checker" | "maker" | "admin";
 }
 
 interface Change {
@@ -48,6 +51,7 @@ export function NotificationDrawer({ role }: NotificationDrawerProps) {
     try {
       setIsLoading(true);
       const response = await fetchCheckerNotifications(role);
+
       if (response.success && Array.isArray(response.notifications)) {
         setNotifications(response.notifications);
       } else {
@@ -58,7 +62,7 @@ export function NotificationDrawer({ role }: NotificationDrawerProps) {
           description: "Failed to load notifications data",
         });
       }
-    } catch (error: unknown) {
+    } catch (error) {
       setNotifications([]);
       toast({
         variant: "destructive",
@@ -114,8 +118,152 @@ export function NotificationDrawer({ role }: NotificationDrawerProps) {
       const date = parseISO(dateString);
       return format(date, "dd MMM yyyy, hh:mm a");
     } catch (error) {
+      console.error("Error formatting date:", error);
       return dateString;
     }
+  };
+
+  const renderNotificationContent = (notification: Notification) => {
+    if (role === "admin") {
+      return (
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <span className="px-3 py-1 text-sm font-medium rounded-full bg-amber-100 text-amber-800">
+              Pending
+            </span>
+            <span className="text-sm text-gray-500">
+              {formatDate(notification.updated_at)}
+            </span>
+          </div>
+          <h3 className="text-base font-medium">
+            Update in {notification.table_name}
+          </h3>
+          <div className="mt-2 space-y-2">
+            <p className="text-sm text-gray-600">
+              <span className="font-medium">Maker:</span> {notification.maker}
+            </p>
+            <p className="text-sm text-blue-600">
+              <span className="font-medium">Pending Changes:</span>{" "}
+              {notification.pending_count}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="flex items-center justify-between mb-3">
+          <span
+            className={`px-3 py-1 text-sm font-medium rounded-full ${
+              notification.status === "approved"
+                ? "bg-green-500 text-white"
+                : notification.status === "rejected"
+                ? "bg-red-500 text-white"
+                : "bg-amber-100 text-amber-800"
+            }`}
+          >
+            {notification.status.charAt(0).toUpperCase() +
+              notification.status.slice(1)}
+          </span>
+          <span className="text-sm text-gray-500">
+            {formatDate(notification.updated_at)}
+          </span>
+        </div>
+        <h3 className="text-base font-medium">
+          {notification.type === "change" ? "Update in" : "New entry in"}{" "}
+          {notification.table_name}
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {notification.status === "rejected" ? "Rejector" : "Approver"}:{" "}
+          {notification.approver}
+        </p>
+
+        {notification.status === "rejected" && notification.comments ? (
+          <div className="mt-3 border-t pt-3">
+            <p className="text-sm text-gray-700 font-medium">
+              Rejection Comment:
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {notification.comments}
+            </p>
+          </div>
+        ) : (
+          <>
+            <button
+              onClick={() => toggleChanges(notification.request_id)}
+              className="text-blue-600 hover:text-blue-800 text-sm mt-2 flex items-center gap-1"
+            >
+              Changes
+              {expandedNotification === notification.request_id ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </button>
+
+            {expandedNotification === notification.request_id && (
+              <div className="mt-3 border-t pt-3">
+                {notification.type === "change" ? (
+                  getChanges(notification).length === 0 ? (
+                    <p className="text-gray-500 text-sm">No changes found</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {getChanges(notification).map((change, index) => (
+                        <div
+                          key={index}
+                          className="border-b pb-2 last:border-b-0"
+                        >
+                          <p className="font-medium text-sm text-gray-700">
+                            {change.field}
+                          </p>
+                          <div className="mt-1 grid grid-cols-2 gap-4">
+                            <div>
+                              <p className="text-xs text-gray-500">
+                                Old Value:
+                              </p>
+                              <p className="text-sm">
+                                {change.oldValue || "N/A"}
+                              </p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-gray-500">
+                                New Value:
+                              </p>
+                              <p className="text-sm">
+                                {change.newValue || "N/A"}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  <div className="space-y-2">
+                    {Object.entries(notification.data || {}).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="border-b pb-2 last:border-b-0"
+                        >
+                          <p className="font-medium text-sm text-gray-700">
+                            {key}
+                          </p>
+                          <p className="text-sm mt-1">
+                            {String(value) || "N/A"}
+                          </p>
+                        </div>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -183,128 +331,8 @@ export function NotificationDrawer({ role }: NotificationDrawerProps) {
               </div>
             ) : (
               filteredNotifications.map((notification) => (
-                <div
-                  key={notification.request_id}
-                  className="bg-white rounded-lg border border-gray-200 p-4"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span
-                      className={`px-3 py-1 text-sm font-medium rounded-full ${
-                        notification.status === "approved"
-                          ? "bg-green-500 text-white"
-                          : notification.status === "rejected"
-                          ? "bg-red-500 text-white"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {notification.status.charAt(0).toUpperCase() +
-                        notification.status.slice(1)}
-                    </span>
-                    <span className="text-sm text-gray-500">
-                      {formatDate(notification.updated_at)}
-                    </span>
-                  </div>
-                  <h3 className="text-base font-medium">
-                    {notification.type === "change"
-                      ? "Update in"
-                      : "New entry in"}{" "}
-                    {notification.table_name}
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {notification.status === "rejected"
-                      ? "Rejector"
-                      : "Approver"}
-                    : {notification.approver}
-                  </p>
-
-                  {notification.status === "rejected" &&
-                  notification.comments ? (
-                    <div className="mt-3 border-t pt-3">
-                      <p className="text-sm text-gray-700 font-medium">
-                        Rejection Comment:
-                      </p>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {notification.comments}
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => toggleChanges(notification.request_id)}
-                        className="text-blue-600 hover:text-blue-800 text-sm mt-2 flex items-center gap-1"
-                      >
-                        Changes
-                        {expandedNotification === notification.request_id ? (
-                          <ChevronUp className="h-4 w-4" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      {expandedNotification === notification.request_id && (
-                        <div className="mt-3 border-t pt-3">
-                          {notification.type === "change" ? (
-                            getChanges(notification).length === 0 ? (
-                              <p className="text-gray-500 text-sm">
-                                No changes found
-                              </p>
-                            ) : (
-                              <div className="space-y-3">
-                                {getChanges(notification).map(
-                                  (change, index) => (
-                                    <div
-                                      key={index}
-                                      className="border-b pb-2 last:border-b-0"
-                                    >
-                                      <p className="font-medium text-sm text-gray-700">
-                                        {change.field}
-                                      </p>
-                                      <div className="mt-1 grid grid-cols-2 gap-4">
-                                        <div>
-                                          <p className="text-xs text-gray-500">
-                                            Old Value:
-                                          </p>
-                                          <p className="text-sm">
-                                            {change.oldValue || "N/A"}
-                                          </p>
-                                        </div>
-                                        <div>
-                                          <p className="text-xs text-gray-500">
-                                            New Value:
-                                          </p>
-                                          <p className="text-sm">
-                                            {change.newValue || "N/A"}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  )
-                                )}
-                              </div>
-                            )
-                          ) : (
-                            <div className="space-y-2">
-                              {Object.entries(notification.data || {}).map(
-                                ([key, value]) => (
-                                  <div
-                                    key={key}
-                                    className="border-b pb-2 last:border-b-0"
-                                  >
-                                    <p className="font-medium text-sm text-gray-700">
-                                      {key}
-                                    </p>
-                                    <p className="text-sm mt-1">
-                                      {String(value) || "N/A"}
-                                    </p>
-                                  </div>
-                                )
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </>
-                  )}
+                <div key={notification.request_id}>
+                  {renderNotificationContent(notification)}
                 </div>
               ))
             )}
