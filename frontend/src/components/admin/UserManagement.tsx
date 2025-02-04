@@ -508,9 +508,23 @@ const UserManagement: React.FC = () => {
                 </Select>
               </div>
             </div>
-            <Button type="submit" className="w-full">
-              Create User
-            </Button>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setDialogState((prev) => ({
+                    ...prev,
+                    create: { open: false },
+                  }));
+                  setNewUser(INITIAL_USER_STATE);
+                  setErrors({});
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit">Create User</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
