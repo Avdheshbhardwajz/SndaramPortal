@@ -56,6 +56,7 @@ export const TableRequests = () => {
   const [requestToReject, setRequestToReject] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [isBulkReject, setIsBulkReject] = useState(false);
 
   // Fetch requests
   const fetchRequests = useCallback(async () => {
@@ -201,6 +202,7 @@ export const TableRequests = () => {
 
   const handleRejectAll = async (rowIds: string[]) => {
     if (!rejectComment) {
+      setIsBulkReject(true);
       setShowRejectDialog(true);
       return;
     }
@@ -230,6 +232,7 @@ export const TableRequests = () => {
         setSelectedRequests([]);
         setShowRejectDialog(false);
         setRejectComment("");
+        setIsBulkReject(false);
         fetchRequests();
       }
     } catch (error) {
@@ -493,13 +496,20 @@ export const TableRequests = () => {
                 setShowRejectDialog(false);
                 setRejectComment("");
                 setRequestToReject(null);
+                setIsBulkReject(false);
               }}
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
-              onClick={handleReject}
+              onClick={() => {
+                if (isBulkReject) {
+                  handleRejectAll(selectedRequests);
+                } else {
+                  handleReject();
+                }
+              }}
               disabled={!rejectComment}
             >
               Reject
