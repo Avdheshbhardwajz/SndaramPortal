@@ -17,4 +17,13 @@ export const ENDPOINTS = {
     FETCH_DROPDOWN_OPTIONS: "/fetchDropdownOptions",
     FETCH_COLUMN_DROPDOWN: "/fetchColumnDropDown",
   },
+  CHECKER: {
+    GET_REQUESTS: "/fetch-checker-request",
+    GET_GROUP_REQUESTS: "/fetch-checker-group-request",
+    GET_ALL_REQUESTS: "/getallcheckerrequest",
+    APPROVE: "/approve",
+    REJECT: "/reject",
+    APPROVE_ALL: "/approveall",
+    REJECT_ALL: "/rejectall",
+  },
 };

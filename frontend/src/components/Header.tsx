@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { NotificationDrawer } from "./NotificationDrawer";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Bell } from "lucide-react";
 import logo from "../assets/images/Logo-Full.svg";
 
 export const Header: React.FC = () => {
@@ -11,6 +11,7 @@ export const Header: React.FC = () => {
     role: "",
     email: "",
   });
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     // Get user data from localStorage
@@ -55,7 +56,17 @@ export const Header: React.FC = () => {
           {/* Right side items */}
           <div className="flex items-center space-x-4">
             {/* Notification Icon */}
-            <NotificationDrawer role={userData.role as "maker" | "checker"} />
+            <button
+              onClick={() => setIsOpen(true)}
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            >
+              <Bell className="h-5 w-5 text-[#123C90]" />
+            </button>
+            <NotificationDrawer
+              isOpen={isOpen}
+              onClose={() => setIsOpen(false)}
+              role={userData.role as "maker" | "checker" | "admin"}
+            />
 
             {/* User Profile */}
             <div className="flex items-center">

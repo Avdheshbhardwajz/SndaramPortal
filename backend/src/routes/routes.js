@@ -68,6 +68,12 @@ const {
 } = require("../controllers/adminNotification/adminNotification.js");
 const { sendOTP } = require("../controllers/sendOTP/sendOTP.js");
 const { verifyOTP } = require("../controllers/verifyOTP/verifyOTP.js");
+const {
+  fetchCheckerRequest,
+} = require("../controllers/checkerRequest/fetchCheckerRequest.js");
+const {
+  fetchCheckerGroupRequest,
+} = require("../controllers/fetchCheckerGroupRequest/fetchCheckerGroupRequest.js");
 
 // Public routes
 
@@ -111,7 +117,7 @@ router.post("/removegroup", verifyToken, authorize("admin"), removeGroup);
 router.post("/removetable", verifyToken, authorize("admin"), removeTable);
 
 //checker logs
-router.post(
+router.get(
   "/getallcheckerrequest",
   verifyToken,
   authorize("checker", "admin"),
@@ -154,6 +160,22 @@ router.post(
   verifyToken,
   authorize("maker"),
   highlightCells
+);
+
+// Add this new route with the existing checker routes
+router.get(
+  "/fetch-checker-request",
+  verifyToken,
+  authorize("checker"),
+  fetchCheckerRequest
+);
+
+// Add this new route
+router.get(
+  "/fetch-checker-group-request",
+  verifyToken,
+  authorize("checker"),
+  fetchCheckerGroupRequest
 );
 
 module.exports = router;

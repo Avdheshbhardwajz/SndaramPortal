@@ -24,10 +24,17 @@ interface AdminNotification {
   pending_count: number;
 }
 
+interface CheckerNotification {
+  table_name: string;
+  maker: string;
+  created_at: string;
+  pending_count: number;
+}
+
 interface NotificationResponse {
   success: boolean;
   notifications?: Notification[];
-  data?: AdminNotification[];
+  data?: CheckerNotification[] | AdminNotification[];
   message?: string;
 }
 
@@ -74,6 +81,22 @@ export const notificationService = {
         );
       }
 
+      // Transform checker notifications
+      if (role === "checker" && responseData.data) {
+        const checkerData = responseData.data as CheckerNotification[];
+        return checkerData.map((checkerNotif) => ({
+          request_id: `${checkerNotif.table_name}-${checkerNotif.maker}`,
+          type: "change",
+          table_name: checkerNotif.table_name,
+          status: "pending",
+          maker: checkerNotif.maker,
+          updated_at: checkerNotif.created_at,
+          pending_count: checkerNotif.pending_count,
+          approver: "",
+        }));
+      }
+
+      // Handle admin notifications
       if (role === "admin" && responseData.data) {
         // Transform admin notifications to match the expected format
         return responseData.data.map((adminNotif) => ({
@@ -135,4 +158,19 @@ export const notificationService = {
       return false;
     }
   },
+};
+
+export const fetchCheckerNotifications = async (): Promise<Notification[]> => {
+  const response = await fetch(ENDPOINTS.NOTIFICATIONS.CHECKER, {
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+
+  const data = await response.json();
+  if (!data.success) {
+    throw new Error(data.message || "Failed to fetch notifications");
+  }
+
+  return data.data;
 };
