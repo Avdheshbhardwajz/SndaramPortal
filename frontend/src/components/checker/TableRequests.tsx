@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, CheckCircle, XCircle, FileWarning } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle,
+  XCircle,
+  FileWarning,
+  Eye,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { API_URL, ENDPOINTS } from "@/config/constants";
 import {
@@ -23,6 +29,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Pagination } from "@/components/Pagination";
+import { ChangesDialog } from "@/components/ChangesDialog";
 
 interface ChangeRequest {
   request_id: string;
@@ -57,6 +64,10 @@ export const TableRequests = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   const [isBulkReject, setIsBulkReject] = useState(false);
+  const [showChangesDialog, setShowChangesDialog] = useState(false);
+  const [selectedChange, setSelectedChange] = useState<ChangeRequest | null>(
+    null
+  );
 
   // Fetch requests
   const fetchRequests = useCallback(async () => {
@@ -418,6 +429,15 @@ export const TableRequests = () => {
                       >
                         <XCircle className="h-4 w-4" />
                       </button>
+                      <button
+                        onClick={() => {
+                          setSelectedChange(request);
+                          setShowChangesDialog(true);
+                        }}
+                        className="p-1.5 rounded-full text-blue-500 hover:bg-blue-50"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
                     </div>
                   </TableCell>
                   <TableCell className="text-center">{index + 1}</TableCell>
@@ -517,6 +537,21 @@ export const TableRequests = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {selectedChange && (
+        <ChangesDialog
+          isOpen={showChangesDialog}
+          onClose={() => {
+            setShowChangesDialog(false);
+            setSelectedChange(null);
+          }}
+          changes={{
+            old_data: selectedChange.old_data,
+            new_data: selectedChange.new_data,
+          }}
+          tableName={tableName || ""}
+        />
+      )}
     </div>
   );
 };

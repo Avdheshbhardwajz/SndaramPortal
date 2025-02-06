@@ -163,6 +163,7 @@ export const TablesPage: React.FC = () => {
                 tableName={selectedTable}
                 pageSize={pageSize}
                 onPageSizeChange={handlePageSizeChange}
+                userRole="maker"
               />
             </div>
           </div>

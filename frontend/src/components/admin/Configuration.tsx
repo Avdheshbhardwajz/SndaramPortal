@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import ColumnConfigurator from "./configurators/ColumnConfigurator";
 import DropdownManager from "./configurators/DropdownManager";
 import GroupConfiguration from "./configurators/GroupConfiguration";
