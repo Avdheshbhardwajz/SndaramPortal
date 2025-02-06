@@ -7,13 +7,14 @@ import {
 } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import {
   notificationService,
   type Notification,
 } from "@/services/notificationService";
-import { ChangesDialog } from "./ChangesDialog";
+import { Badge } from "./ui/Badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface NotificationDrawerProps {
   isOpen: boolean;
@@ -27,10 +28,13 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
   role,
 }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [expandedNotifications, setExpandedNotifications] = useState<
+    Record<string, boolean>
+  >({});
+  const [activeTab, setActiveTab] = useState<"all" | "approved" | "rejected">(
+    "all"
+  );
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedNotification, setSelectedNotification] =
-    useState<Notification | null>(null);
-  const [showChangesDialog, setShowChangesDialog] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   const userRole = role;
@@ -65,8 +69,8 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
       navigate(`/checker/table/${notification.table_name}`);
     } else if (userRole === "maker") {
       if (notification.old_data && notification.new_data) {
-        setSelectedNotification(notification);
-        setShowChangesDialog(true);
+        // setSelectedNotification(notification);
+        // setShowChangesDialog(true);
       }
     } else if (userRole === "admin") {
       navigate(`/admin/tables/${notification.table_name}`);
@@ -74,43 +78,193 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
     onClose();
   };
 
-  const renderNotificationContent = (notification: Notification) => {
+  const filteredNotifications = React.useMemo(() => {
+    if (activeTab === "all") return notifications;
+    return notifications.filter((n) => n.status.toLowerCase() === activeTab);
+  }, [notifications, activeTab]);
+
+  const getNotificationCounts = () => {
+    const approved = notifications.filter(
+      (n) => n.status.toLowerCase() === "approved"
+    ).length;
+    const rejected = notifications.filter(
+      (n) => n.status.toLowerCase() === "rejected"
+    ).length;
+    return {
+      all: notifications.length,
+      approved,
+      rejected,
+    };
+  };
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      approved: {
+        icon: <CheckCircle2 className="w-3 h-3" />,
+        className: "bg-green-100 text-green-800",
+      },
+      rejected: {
+        icon: <XCircle className="w-3 h-3" />,
+        className: "bg-red-100 text-red-800",
+      },
+      pending: {
+        icon: <Clock className="w-3 h-3" />,
+        className: "bg-amber-100 text-amber-800",
+      },
+    };
+
+    const config =
+      statusConfig[status as keyof typeof statusConfig] || statusConfig.pending;
+
     return (
-      <div
-        className="bg-white rounded-lg p-4 border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-        onClick={() => handleNotificationClick(notification)}
+      <Badge
+        variant="notification"
+        className={`${config.className} flex items-center gap-1`}
       >
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
-                {notification.pending_count} Pending
-              </span>
-              <span className="text-xs text-gray-500">
-                {new Date(notification.updated_at)
-                  .toLocaleString("en-US", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: true,
-                  })
-                  .replace(",", " |")}
-              </span>
-            </div>
+        {config.icon}
+        <span className="capitalize">{status}</span>
+      </Badge>
+    );
+  };
 
-            <h3 className="text-sm font-medium text-gray-900 capitalize">
-              {notification.table_name.toLowerCase().replace(/_/g, " ")}
-            </h3>
-
-            <p className="text-xs text-gray-500 mt-1">
-              Maker: {notification.maker}
-            </p>
+  const renderChanges = (
+    oldData: Record<string, unknown>,
+    newData: Record<string, unknown>
+  ) => {
+    return (
+      <div className="mt-3 border-t pt-2">
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <h4 className="text-xs font-medium text-gray-500 mb-2">
+              Previous Value
+            </h4>
+            {Object.entries(oldData).map(([key, value]) => (
+              <div key={key} className="mb-2">
+                <span className="text-xs text-gray-600 block">{key}:</span>
+                <span className="text-sm text-gray-900">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+          <div>
+            <h4 className="text-xs font-medium text-gray-500 mb-2">
+              New Value
+            </h4>
+            {Object.entries(newData).map(([key, value]) => (
+              <div key={key} className="mb-2">
+                <span className="text-xs text-gray-600 block">{key}:</span>
+                <span className="text-sm text-gray-900">{String(value)}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
     );
+  };
+
+  const toggleChanges = (notificationId: string) => {
+    setExpandedNotifications((prev) => ({
+      ...prev,
+      [notificationId]: !prev[notificationId],
+    }));
+  };
+
+  const renderMakerNotification = (notification: Notification) => {
+    const status = notification.status.toLowerCase();
+    const showChanges = expandedNotifications[notification.request_id];
+
+    return (
+      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-100">
+        <div className="space-y-2">
+          <div className="flex items-start justify-between">
+            <div>
+              {getStatusBadge(notification.status)}
+              <p className="text-[#6B7280] text-xs mt-1">
+                {new Date(notification.updated_at).toLocaleString("en-US", {
+                  day: "numeric",
+                  month: "short",
+                  year: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </p>
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-[#111827] text-sm font-medium">
+              Update in{" "}
+              {notification.table_name.toLowerCase().replace(/_/g, " ")}
+            </h3>
+            <p className="text-[#6B7280] text-xs mt-0.5">
+              {status === "rejected" ? "Rejector" : "Approver"}:{" "}
+              {notification.approver}
+            </p>
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleChanges(notification.request_id);
+              }}
+              className="text-[#2563EB] hover:text-blue-700 text-sm font-medium"
+            >
+              {showChanges ? "Hide Changes" : "View Changes"}
+            </button>
+          </div>
+
+          {showChanges &&
+            notification.old_data &&
+            notification.new_data &&
+            renderChanges(notification.old_data, notification.new_data)}
+        </div>
+      </div>
+    );
+  };
+
+  const renderCheckerOrAdminNotification = (notification: Notification) => {
+    return (
+      <div className="bg-white rounded-lg p-4 border border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer group">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-sm font-medium text-gray-900 capitalize">
+                {notification.table_name.toLowerCase().replace(/_/g, " ")}
+              </h3>
+              <Badge
+                variant="notification"
+                className="bg-amber-100 text-amber-800"
+              >
+                {notification.pending_count} Pending
+              </Badge>
+            </div>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-gray-600">Maker:</span>
+              <span className="text-xs font-medium text-gray-800">
+                {notification.maker}
+              </span>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-gray-500">
+                {new Date(notification.updated_at).toLocaleString()}
+              </span>
+              {role === "checker" && (
+                <span className="text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                  Review Changes →
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderNotificationContent = (notification: Notification) => {
+    return role === "maker"
+      ? renderMakerNotification(notification)
+      : renderCheckerOrAdminNotification(notification);
   };
 
   return (
@@ -119,22 +273,56 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
         <SheetContent className="w-full sm:max-w-md bg-white">
           <SheetHeader className="border-b pb-4">
             <SheetTitle>Notifications</SheetTitle>
+            {role === "maker" && (
+              <Tabs
+                defaultValue="all"
+                value={activeTab}
+                onValueChange={(value) =>
+                  setActiveTab(value as typeof activeTab)
+                }
+                className="w-full"
+              >
+                <TabsList className="grid w-full grid-cols-3 p-1 bg-gray-100 rounded-lg">
+                  <TabsTrigger
+                    value="all"
+                    className="text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    All ({getNotificationCounts().all})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="approved"
+                    className="text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Approved ({getNotificationCounts().approved})
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="rejected"
+                    className="text-sm data-[state=active]:bg-white data-[state=active]:shadow-sm"
+                  >
+                    Rejected ({getNotificationCounts().rejected})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            )}
           </SheetHeader>
 
           <div className="mt-4">
-            <ScrollArea className="h-[calc(100vh-8rem)] pr-4">
+            <ScrollArea className="h-[calc(100vh-12rem)] pr-4">
               {isLoading ? (
                 <div className="flex justify-center items-center h-32">
                   <Loader2 className="h-6 w-6 animate-spin text-[#1A237E]" />
                 </div>
-              ) : notifications.length === 0 ? (
+              ) : filteredNotifications.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   No notifications available
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {notifications.map((notification, index) => (
-                    <div key={notification.request_id || index}>
+                  {filteredNotifications.map((notification, index) => (
+                    <div
+                      key={notification.request_id || index}
+                      onClick={() => handleNotificationClick(notification)}
+                    >
                       {renderNotificationContent(notification)}
                     </div>
                   ))}
@@ -144,21 +332,6 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
           </div>
         </SheetContent>
       </Sheet>
-
-      {selectedNotification && (
-        <ChangesDialog
-          isOpen={showChangesDialog}
-          onClose={() => {
-            setShowChangesDialog(false);
-            setSelectedNotification(null);
-          }}
-          changes={{
-            old_data: selectedNotification.old_data || {},
-            new_data: selectedNotification.new_data || {},
-          }}
-          tableName={selectedNotification.table_name}
-        />
-      )}
     </>
   );
 };
