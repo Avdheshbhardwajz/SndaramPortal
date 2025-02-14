@@ -7,6 +7,15 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 
 interface Table {
   table_name: string;
+  display_name?: string;
+  description?: string | null;
+}
+
+interface TableMetadata {
+  id: string;
+  original_table_name: string;
+  display_name: string;
+  description: string | null;
 }
 
 export const TablesPage: React.FC = () => {
@@ -20,11 +29,15 @@ export const TablesPage: React.FC = () => {
   const [tableKey, setTableKey] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(15);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [tableMetadata, setTableMetadata] = useState<
+    Record<string, TableMetadata>
+  >({});
 
   const navigate = useNavigate();
 
   useEffect(() => {
     loadTables();
+    loadTableMetadata();
   }, []);
 
   // Calculate items per page based on container height
@@ -58,13 +71,44 @@ export const TablesPage: React.FC = () => {
     return () => window.removeEventListener("resize", calculateItemsPerPage);
   }, []);
 
+  const loadTableMetadata = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:8080/get-renamed-tables", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success) {
+        // Create a map of original_table_name to metadata
+        const metadataMap = data.data.reduce(
+          (acc: Record<string, TableMetadata>, item: TableMetadata) => {
+            acc[item.original_table_name] = item;
+            return acc;
+          },
+          {}
+        );
+        setTableMetadata(metadataMap);
+      }
+    } catch (error) {
+      console.error("Failed to fetch table metadata:", error);
+    }
+  };
+
   const loadTables = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const response = await fetchTables();
       if (response.success) {
-        setTables(response.tables);
+        // Enhance tables with metadata
+        const enhancedTables = response.tables.map((table) => ({
+          ...table,
+          display_name: tableMetadata[table.table_name]?.display_name,
+          description: tableMetadata[table.table_name]?.description,
+        }));
+        setTables(enhancedTables);
       } else {
         setError(response.message || "Failed to fetch tables");
       }
@@ -89,9 +133,12 @@ export const TablesPage: React.FC = () => {
     setTableKey((prev) => prev + 1);
   };
 
-  const filteredTables = tables.filter((table) =>
-    table.table_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredTables = tables.filter((table) => {
+    const searchLower = searchQuery.toLowerCase();
+    const tableName = table.table_name.toLowerCase();
+    const displayName = table.display_name?.toLowerCase() || "";
+    return tableName.includes(searchLower) || displayName.includes(searchLower);
+  });
 
   const totalPages = Math.ceil(filteredTables.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -177,12 +224,19 @@ export const TablesPage: React.FC = () => {
                 <button
                   key={table.table_name}
                   onClick={() => setSelectedTable(table.table_name)}
-                  className="flex items-center justify-between p-4 bg-white rounded-lg border border-[#e3f2fd] hover:border-[#00bfa5] hover:shadow-lg transition-all text-left h-[60px] group"
+                  className="flex flex-col p-4 bg-white rounded-lg border border-[#e3f2fd] hover:border-[#00bfa5] hover:shadow-lg transition-all text-left min-h-[60px] group"
                 >
-                  <span className="text-[#1a237e] font-medium group-hover:text-[#283593]">
-                    {table.table_name}
-                  </span>
-                  <ArrowRight className="h-4 w-4 text-[#00bfa5] group-hover:translate-x-1 transition-transform" />
+                  <div className="flex items-center justify-between">
+                    <span className="text-[#1a237e] font-medium group-hover:text-[#283593]">
+                      {table.display_name || table.table_name}
+                    </span>
+                    <ArrowRight className="h-4 w-4 text-[#00bfa5] group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  {table.description && (
+                    <p className="text-sm text-gray-600 mt-2 line-clamp-2">
+                      {table.description}
+                    </p>
+                  )}
                 </button>
               ))}
             </div>
