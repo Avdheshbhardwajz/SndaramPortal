@@ -74,6 +74,14 @@ const {
 const {
   fetchCheckerGroupRequest,
 } = require("../controllers/fetchCheckerGroupRequest/fetchCheckerGroupRequest.js");
+const {
+  renameTable,
+  getRenamedTables,
+} = require("../controllers/tableMetadata/tableMetadata.js");
+const {
+  deleteRenamedTable,
+  updateRenamedTable,
+} = require("../controllers/tableMetadata/tableMetadata.js");
 
 // Public routes
 
@@ -170,12 +178,27 @@ router.get(
   fetchCheckerRequest
 );
 
-// Add this new route
 router.get(
   "/fetch-checker-group-request",
   verifyToken,
   authorize("checker"),
   fetchCheckerGroupRequest
+);
+
+// Table metadata routes
+router.post("/rename-tables", verifyToken, authorize("admin"), renameTable);
+router.get("/get-renamed-tables", verifyToken, getRenamedTables);
+router.delete(
+  "/delete-renamed-tables/:id",
+  verifyToken,
+  authorize("admin"),
+  deleteRenamedTable
+);
+router.put(
+  "/update-renamed-tables/:id",
+  verifyToken,
+  authorize("admin"),
+  updateRenamedTable
 );
 
 module.exports = router;
