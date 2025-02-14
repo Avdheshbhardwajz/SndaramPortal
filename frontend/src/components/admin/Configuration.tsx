@@ -2,8 +2,9 @@ import { useState } from "react";
 import ColumnConfigurator from "./configurators/ColumnConfigurator";
 import DropdownManager from "./configurators/DropdownManager";
 import GroupConfiguration from "./configurators/GroupConfiguration";
+import TableConfigurator from "./configurators/TableConfigurator";
 
-type TabType = "column" | "dropdown" | "group";
+type TabType = "column" | "dropdown" | "group" | "table";
 
 const Configuration = () => {
   const [activeTab, setActiveTab] = useState<TabType>("column");
@@ -16,6 +17,8 @@ const Configuration = () => {
         return <DropdownManager tables={[]} />;
       case "group":
         return <GroupConfiguration />;
+      case "table":
+        return <TableConfigurator />;
       default:
         return null;
     }
@@ -53,6 +56,16 @@ const Configuration = () => {
           }`}
         >
           Group Configuration
+        </button>
+        <button
+          onClick={() => setActiveTab("table")}
+          className={`px-6 py-2 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === "table"
+              ? "bg-[#0F172A] text-white"
+              : "border border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          Table Configuration
         </button>
       </div>
 
